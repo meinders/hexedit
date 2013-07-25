@@ -18,6 +18,7 @@ package hexedit;
 
 import java.awt.geom.*;
 import java.io.*;
+import java.net.*;
 
 /**
  * FIXME Need comment
@@ -152,7 +153,7 @@ public class ViewModel
 		return _selectionStart;
 	}
 
-	public void setSelectionStart( Tile selectionStart )
+	public void setSelectionStart( final Tile selectionStart )
 	{
 		_selectionStart = selectionStart;
 	}
@@ -162,7 +163,7 @@ public class ViewModel
 		return _selectionEnd;
 	}
 
-	public void setSelectionEnd( Tile selectionEnd )
+	public void setSelectionEnd( final Tile selectionEnd )
 	{
 		_selectionEnd = selectionEnd;
 	}
@@ -173,7 +174,7 @@ public class ViewModel
 		setSelectionEnd( null );
 	}
 
-	public boolean isSelected( int offset )
+	public boolean isSelected( final int offset )
 	{
 		if ( _selectionStart != null )
 		{
@@ -269,6 +270,34 @@ public class ViewModel
 		else
 		{
 			return Math.abs( _selectionStart.getOffset() - _selectionEnd.getOffset() ) + 1;
+		}
+	}
+
+	public String getDataSourceName()
+	{
+		final URI dataSource = _dataModel.getDataSource();
+		if ( "file".equals( dataSource.getScheme() ) )
+		{
+			final File file = new File( dataSource );
+			return file.getName();
+		}
+		else
+		{
+			return dataSource.toString();
+		}
+	}
+
+	public String getDataSourceDetails()
+	{
+		final URI dataSource = _dataModel.getDataSource();
+		if ( "file".equals( dataSource.getScheme() ) )
+		{
+			final File file = new File( dataSource );
+			return file.getAbsolutePath();
+		}
+		else
+		{
+			return null;
 		}
 	}
 }

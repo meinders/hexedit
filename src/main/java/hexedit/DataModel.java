@@ -17,6 +17,7 @@
 package hexedit;
 
 import java.io.*;
+import java.net.*;
 import java.nio.*;
 import java.nio.channels.*;
 
@@ -35,14 +36,18 @@ public class DataModel
 
 	private int _windowSize;
 
+	private URI _dataSource;
+
 	/**
 	 * Constructs a new instance.
-	 * @param channel
+	 *
+	 * @param dataSource URI of the data source.
+	 * @param channel    Channel that provides access to the data.
 	 */
-	public DataModel( final FileChannel channel )
-	throws IOException
+	public DataModel( final URI dataSource, final FileChannel channel )
 	{
 		_channel = channel;
+		_dataSource = dataSource;
 		_windowSize = 0x10000;
 	}
 
@@ -93,5 +98,15 @@ public class DataModel
 		}
 
 		return _bytes;
+	}
+
+	public URI getDataSource()
+	{
+		return _dataSource;
+	}
+
+	public void setDataSource( URI dataSource )
+	{
+		_dataSource = dataSource;
 	}
 }

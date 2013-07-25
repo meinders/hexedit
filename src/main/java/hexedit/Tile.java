@@ -147,6 +147,11 @@ public class Tile
 		return _viewModel.isSelected( _offset );
 	}
 
+	public boolean isSelectionAnchor()
+	{
+		return !isSelected() && ( _viewModel.isSelected( _offset - 1 ) || _viewModel.isSelected( _offset + 1 ) );
+	}
+
 	@Override
 	public int hashCode()
 	{
@@ -157,5 +162,10 @@ public class Tile
 	public boolean equals( final Object other )
 	{
 		return other instanceof Tile && _offset == ( (Tile)other )._offset;
+	}
+
+	public long getAddress()
+	{
+		return (long)getOffset() + _dataModel.getOffset();
 	}
 }

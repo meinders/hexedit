@@ -37,6 +37,9 @@ extends JPanel
 		addMouseListener( mouseListener );
 		addMouseMotionListener( mouseListener );
 		addMouseWheelListener( mouseListener );
+
+		setOpaque( true );
+		setBackground( new Color( 0xeeeeee ) );
 	}
 
 	public ViewModel getViewModel()
@@ -61,30 +64,39 @@ extends JPanel
 		final AffineTransform transform = _viewModel.getTransform();
 		g2.setTransform( transform );
 
+		final Font sourceFont = new Font( Font.SERIF, Font.ITALIC, 28 );
+		final Font sourceDetailsFont = new Font( Font.SANS_SERIF, Font.PLAIN, 10 );
 		final Font characterFont = new Font( Font.SERIF, Font.BOLD, 12 );
 		final Font valueFont = new Font( Font.MONOSPACED, Font.PLAIN, 8 );
+		final Font addressFont = new Font( Font.MONOSPACED, Font.PLAIN, 8 );
 
+		final FontMetrics sourceMetrics = g2.getFontMetrics( sourceFont );
+		final FontMetrics sourceDetailsMetrics = g2.getFontMetrics( sourceDetailsFont );
 		final FontMetrics characterMetrics = g2.getFontMetrics( characterFont );
 		final FontMetrics valueMetrics = g2.getFontMetrics( valueFont );
+		final FontMetrics addressMetrics = g2.getFontMetrics( addressFont );
 
-		final Color charForeground = Color.BLACK;
-		final Color charBackground = Color.WHITE;
+		final Color sourceForeground = new Color( 0x444444 );
+		final Color sourceDetailsForeground = new Color( 0x888888 );
+		final Color charForeground = new Color( 0x000000 );
+		final Color addressForeground = new Color( 0x444444 );
+		final Color charBackground = new Color( 0xffffff );
 		final Color valueForeground = new Color( 0x008080 );
 		final Color nullValueForeground = new Color( 0xaaaaaa );
 		final Color selectionBackground = new Color( 0xbbdddd );
 		final Color selectionBorderColor = new Color( 0x88cccc );
 		final Color tipBackground = new Color( 0xffffcc );
-		final Color tipBorderColor = getBackground();
-		final Color tipForeground = Color.BLACK;
+		final Color tipBorderColor = new Color( 0xeeeeee );
+		final Color tipForeground = new Color( 0x000000 );
 
 		final float tipPadding = 2.0f;
+		final float addressMargin = 10.0f;
 
 		final float characterY = (float)characterMetrics.getAscent();
 		final float decimalY = _viewModel.getTileSize() - (float)valueMetrics.getDescent();
 
 		final Rectangle2D.Float viewBounds = Tools.inverseTransform( transform, new Rectangle2D.Float( 0.0f, 0.0f, (float)getWidth(), (float)getHeight() ) );
 
-		int rendered = 0;
 		final Tile tile = _viewModel.getTile();
 		while ( tile.next() )
 		{
@@ -94,12 +106,21 @@ extends JPanel
 				continue;
 			}
 
-			rendered++;
-
-			final boolean selected = tile.isSelected();
-
-			g2.setColor( selected ? selectionBackground : charBackground );
+			if ( tile.isSelected() )
+			{
+				g2.setColor( selectionBackground );
+			}
+			else
+			{
+				g2.setColor( charBackground  );
+			}
 			g2.fill( bounds );
+
+			if ( tile.isSelectionAnchor() )
+			{
+				g2.setColor( selectionBackground );
+				g2.draw( bounds );
+			}
 
 			if ( tile.isPrintable() )
 			{
@@ -118,6 +139,36 @@ extends JPanel
 			final int valueWidth = valueMetrics.stringWidth( value );
 			g2.setColor( tile.getCharacter() == '\0' ? nullValueForeground : valueForeground );
 			g2.drawString( value, (float)bounds.getCenterX() - (float)valueWidth / 2.0f, bounds.y + decimalY );
+
+			if ( tile.getColumn() == 0 )
+			{
+				{
+					final long address = tile.getAddress();
+					final String addressLabel = Long.toString( address );
+					final Rectangle2D stringBounds = addressMetrics.getStringBounds( addressLabel, g2 );
+					g2.setColor( addressForeground );
+					g2.setFont( addressFont );
+					g2.drawString( addressLabel, -addressMargin -(float)stringBounds.getMaxX(), (float)bounds.getCenterY() - (float)stringBounds.getY() - (float)stringBounds.getHeight() / 2.0f );
+				}
+			}
+		}
+
+		if ( viewBounds.getY() < 0.0 )
+		{
+			final String dataSource = _viewModel.getDataSourceName();
+			g2.setColor( sourceForeground );
+			g2.setFont( sourceFont );
+			g2.drawString( dataSource, 0.0f, -_viewModel.getTileSize() );
+
+/*
+					final String details = _viewModel.getDataSourceDetails();
+					if ( details != null )
+					{
+						g2.setColor( sourceDetailsForeground );
+						g2.setFont( sourceDetailsFont );
+						g2.drawString( details, 0.0f, (float)sourceMetrics.getDescent() + sourceDetailsMetrics.getAscent() - _viewModel.getTileSize() );
+					}
+*/
 		}
 
 		final Tile selectionStart = _viewModel.getSelectionStart();
@@ -144,7 +195,11 @@ extends JPanel
 	private class MouseListenerImpl
 		extends MouseAdapter
 	{
+		private final float _dragThreshold = 10.0f;
+
 		private Point _dragStart;
+
+		private boolean _dragging;
 
 		private Timer _holdTimer;
 
@@ -161,14 +216,20 @@ extends JPanel
 					if ( tile != null )
 					{
 						_selectedBeforePress = false;
-						System.out.println( " - tile = " + tile );
-						System.out.println( " - _viewModel.getSelectionEnd() = " + _viewModel.getSelectionEnd() );
-						if ( tile.equals( _viewModel.getSelectionStart() ) )
+
+						final Tile selectionStart = _viewModel.getSelectionStart();
+						final Tile selectionEnd = _viewModel.getSelectionEnd();
+
+						if ( selectionStart != null && tile.getOffset() == selectionStart.getOffset() - 1 )
 						{
 							_viewModel.setSelectionStart( _viewModel.getSelectionEnd() );
 							_viewModel.setSelectionEnd( tile );
 						}
-						else if ( !tile.equals( _viewModel.getSelectionEnd() ) )
+						else if ( selectionEnd != null && tile.getOffset() == selectionEnd.getOffset() + 1 )
+						{
+							_viewModel.setSelectionEnd( tile );
+						}
+						else
 						{
 							_viewModel.clearSelection();
 							_viewModel.setSelectionStart( tile );
@@ -190,13 +251,6 @@ extends JPanel
 		}
 
 		@Override
-		public void mouseReleased( MouseEvent e )
-		{
-			_selectedBeforePress = false;
-			_holdTimer.stop();
-		}
-
-		@Override
 		public void mouseDragged( final MouseEvent e )
 		{
 			if ( !_selectedBeforePress && _viewModel.getSelectionStart() != null )
@@ -208,14 +262,23 @@ extends JPanel
 					repaint();
 				}
 			}
-			else
+			else if ( _dragging || (float)_dragStart.distanceSq( e.getPoint() ) > _dragThreshold * _dragThreshold )
 			{
+				_dragging = true;
 				final Point dragEnd = e.getPoint();
 				_viewModel.moveView( _dragStart, dragEnd );
 				_dragStart = dragEnd;
 				_holdTimer.stop();
 				repaint();
 			}
+		}
+
+		@Override
+		public void mouseReleased( MouseEvent e )
+		{
+			_selectedBeforePress = false;
+			_dragging = false;
+			_holdTimer.stop();
 		}
 
 		@Override

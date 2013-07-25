@@ -37,10 +37,11 @@ public class Main
 	public static void main( final String[] args )
 	throws IOException
 	{
-		final Path path = Paths.get( URI.create( "file:///C:/idea/Lithium/lithium-ews/src/main/resources/media.ews" ) );
+		final URI dataSource = URI.create( "file:///C:/idea/Lithium/lithium-ews/src/main/resources/media.ews" );
+		final Path path = Paths.get( dataSource );
 		final FileChannel channel = FileChannel.open( path );
 
-		final DataModel dataModel = new DataModel( channel );
+		final DataModel dataModel = new DataModel( dataSource, channel );
 
 		SwingUtilities.invokeLater( new Runnable()
 		{
