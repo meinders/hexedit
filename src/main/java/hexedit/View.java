@@ -76,8 +76,10 @@ extends JPanel
 		final FontMetrics valueMetrics = g2.getFontMetrics( valueFont );
 		final FontMetrics addressMetrics = g2.getFontMetrics( addressFont );
 
+		final Color headerBackground = new Color( 0xbbdddd );
 		final Color sourceForeground = new Color( 0x444444 );
 		final Color sourceDetailsForeground = new Color( 0x888888 );
+
 		final Color charForeground = new Color( 0x000000 );
 		final Color addressForeground = new Color( 0x444444 );
 		final Color charBackground = new Color( 0xffffff );
@@ -85,6 +87,7 @@ extends JPanel
 		final Color nullValueForeground = new Color( 0xaaaaaa );
 		final Color selectionBackground = new Color( 0xbbdddd );
 		final Color selectionBorderColor = new Color( 0x88cccc );
+
 		final Color tipBackground = new Color( 0xffffcc );
 		final Color tipBorderColor = new Color( 0xeeeeee );
 		final Color tipForeground = new Color( 0x000000 );
@@ -131,10 +134,7 @@ extends JPanel
 				g2.drawString( String.valueOf( c ), (float)bounds.getCenterX() - (float)charWidth / 2.0f, bounds.y + characterY );
 			}
 
-			final String decimal = tile.getUnsignedDecimal();
-			final String hexadecimal = tile.getHexadecimal();
-
-			final String value = hexadecimal;
+			final String value = tile.getHexadecimal();
 			g2.setFont( valueFont );
 			final int valueWidth = valueMetrics.stringWidth( value );
 			g2.setColor( tile.getCharacter() == '\0' ? nullValueForeground : valueForeground );
@@ -155,6 +155,9 @@ extends JPanel
 
 		if ( viewBounds.getY() < 0.0 )
 		{
+			g2.setColor( headerBackground );
+			g2.fill( new Rectangle2D.Float( viewBounds.x, Math.min( viewBounds.y, -viewBounds.height - _viewModel.getTilePadding() ), viewBounds.width, viewBounds.height ) );
+
 			final String dataSource = _viewModel.getDataSourceName();
 			g2.setColor( sourceForeground );
 			g2.setFont( sourceFont );
