@@ -37,7 +37,14 @@ public class Main
 	public static void main( final String[] args )
 	throws IOException
 	{
-		final URI dataSource = URI.create( "file:///C:/idea/Lithium/lithium-ews/src/main/resources/media.ews" );
+		if ( args.length == 0 )
+		{
+			System.err.println( "Usage: java hexedit.Main <filename>" );
+			return;
+		}
+
+		final File file = new File( args[ 0 ] );
+		final URI dataSource = file.toURI();
 		final Path path = Paths.get( dataSource );
 		final FileChannel channel = FileChannel.open( path );
 
