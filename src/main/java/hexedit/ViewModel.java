@@ -19,6 +19,7 @@ package hexedit;
 import java.awt.geom.*;
 import java.io.*;
 import java.net.*;
+import java.util.*;
 
 /**
  * FIXME Need comment
@@ -45,9 +46,9 @@ public class ViewModel
 
 	private AffineTransform _affineTransform;
 
-	private Tile _selectionStart;
+	private long _selectionStart = 0L;
 
-	private Tile _selectionEnd;
+	private long _selectionEnd = -1L;
 
 	public int getColumns()
 	{
@@ -76,6 +77,13 @@ public class ViewModel
 	public Tile getTile()
 	{
 		return new Tile( this, _dataModel );
+	}
+
+	public Tile getTile( final long address )
+	{
+		final Tile result = new Tile( this, _dataModel );
+		result.setAddress( address );
+		return result;
 	}
 
 	public Tile getTile( final Point2D point )
@@ -109,7 +117,7 @@ public class ViewModel
 		}
 
 		final Tile result = new Tile( this, _dataModel );
-		result.setOffset( offset );
+		result.setAddress( _firstRowAddress + (long)offset );
 		return result;
 	}
 
@@ -167,64 +175,61 @@ public class ViewModel
 		}
 	}
 
-	public Tile getSelectionStart()
+	public long getSelectionStart()
 	{
 		return _selectionStart;
 	}
 
-	public void setSelectionStart( final Tile selectionStart )
+	public void setSelectionStart( final long selectionStart )
 	{
 		_selectionStart = selectionStart;
 	}
 
-	public Tile getSelectionEnd()
+	public long getSelectionEnd()
 	{
 		return _selectionEnd;
 	}
 
-	public void setSelectionEnd( final Tile selectionEnd )
+	public void setSelectionEnd( final long selectionEnd )
 	{
 		_selectionEnd = selectionEnd;
 	}
 
-	public void clearSelection()
+	public long getSelectionLength()
 	{
-		setSelectionStart( null );
-		setSelectionEnd( null );
+		return _selectionEnd - _selectionStart + 1L;
 	}
 
-	public boolean isSelected( final int offset )
+	public void select( final long start, final long end )
 	{
-		if ( _selectionStart != null )
-		{
-			if ( _selectionEnd != null )
-			{
-				return _selectionStart.getOffset() <= offset && _selectionEnd.getOffset() >= offset ||
-				       _selectionStart.getOffset() >= offset && _selectionEnd.getOffset() <= offset;
-			}
-			else
-			{
-				return _selectionStart.getOffset() == offset;
-			}
-		}
-		else
-		{
-			return false;
-		}
+		_selectionStart = Math.min( start, end );
+		_selectionEnd = Math.max( start, end );
+	}
+
+	public void clearSelection()
+	{
+		_selectionStart = 0L;
+		_selectionEnd = -1L;
+	}
+
+	public boolean isSelected( final long address )
+	{
+		return _selectionStart <= address && address <= _selectionEnd;
 	}
 
 	public String getSelectionValue()
 	{
-		final int selectionLength = getSelectionLength();
+		final long selectionLength = getSelectionLength();
 
-		if ( selectionLength == 1 )
+		if ( selectionLength == 1L )
 		{
-			return _selectionStart.getUnsignedDecimal();
+			final Tile tile = getTile( getSelectionStart() );
+			return tile.getUnsignedDecimal();
 		}
 		else
 		{
-			final long start = Math.min( _selectionStart.getAddress(), _selectionEnd.getAddress() );
-			final long end = Math.max( _selectionStart.getAddress(), _selectionEnd.getAddress() );
+			final long start = _selectionStart;
+			final long end = _selectionEnd;
 			if ( selectionLength >= 2 && selectionLength <= 8 )
 			{
 				try
@@ -274,22 +279,6 @@ public class ViewModel
 		}
 	}
 
-	private int getSelectionLength()
-	{
-		if ( _selectionStart == null )
-		{
-			return 0;
-		}
-		else if ( _selectionEnd == null )
-		{
-			return 1;
-		}
-		else
-		{
-			return Math.abs( _selectionStart.getOffset() - _selectionEnd.getOffset() ) + 1;
-		}
-	}
-
 	public String getDataSourceName()
 	{
 		final URI dataSource = _dataModel.getDataSource();
@@ -321,5 +310,66 @@ public class ViewModel
 	public long getFirstRowAddress()
 	{
 		return _firstRowAddress;
+	}
+
+	public Iterable<Tile> getTiles()
+	{
+		final long start = getFirstRowAddress();
+		final long end = start + 800L;
+
+		return new Iterable<Tile>()
+		{
+			@Override
+			public Iterator<Tile> iterator()
+			{
+				return new TileIterator( getTile( start ), end );
+			}
+		};
+	}
+
+	private static class TileIterator
+	implements Iterator<Tile>
+	{
+		private final Tile _tile;
+
+		private long _current;
+
+		private long _end;
+
+		/**
+		 * Constructs a new instance.
+		 *
+		 * @param tile First tile.
+		 * @param end  Address of last tile.
+		 */
+		private TileIterator( final Tile tile, final long end )
+		{
+			_tile = tile;
+			_current = tile.getAddress();
+			_end = end;
+		}
+
+		@Override
+		public boolean hasNext()
+		{
+			return _current <= _end;
+		}
+
+		@Override
+		public Tile next()
+		{
+			if ( !hasNext() )
+			{
+				throw new NoSuchElementException();
+			}
+			_tile.setAddress( _current++ );
+			return _tile;
+		}
+
+		@Override
+		public void remove()
+		{
+			throw new UnsupportedOperationException();
+		}
 	}
 }

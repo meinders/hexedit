@@ -20,7 +20,7 @@ import java.awt.geom.*;
 import java.io.*;
 
 /**
- * FIXME Need comment
+ * View for a single byte.
  *
  * @author Gerrit Meinders
  */
@@ -30,19 +30,13 @@ public class Tile
 
 	private final DataModel _dataModel;
 
-	private int _offset = -1;
+	private long _address = -1L;
 
 	private int _column = 0;
 
 	private int _row = 0;
 
-	private String _hexadecimal;
-
-	private String _unsignedDecimal;
-
-	private boolean _printable;
-
-	private char _character;
+	private int _value = 0;
 
 	public Tile( final ViewModel viewModel, final DataModel dataModel )
 	{
@@ -50,52 +44,30 @@ public class Tile
 		_dataModel = dataModel;
 	}
 
-	public int getOffset()
+	public long getAddress()
 	{
-		return _offset;
+		return _address;
 	}
 
-	public void setOffset( final int offset )
+	public void setAddress( final long address )
 	{
-		_offset = offset;
+		_address = address;
 		init();
-	}
-
-	public boolean next()
-	{
-		if ( ++_offset < 800 )
-		{
-			init();
-			return true;
-		}
-		else
-		{
-			_offset--;
-			return false;
-		}
 	}
 
 	private void init()
 	{
-		final int columns = _viewModel.getColumns();
-		final int column = _offset % columns;
-		final int row = _offset / columns;
-//		final int rows = _viewModel.getRows();
-//		final int block = row / rows;
+		final long address = getAddress();
 
-		_column = column;// + ( columns + 2 ) * block;
-		_row = row;// % rows;
+		final ViewModel viewModel = _viewModel;
+		final long offset = address - viewModel.getFirstRowAddress();
+		final int columns = viewModel.getColumns();
+		_column = (int)( offset % (long)columns );
+		_row = (int)( offset / (long)columns );
 
 		try
 		{
-			final int value = (int)_dataModel.getByte( getAddress() );
-			final int unsignedValue = value & 0xff;
-
-			_character = (char)unsignedValue;
-			_printable = value >= 32 && value <= 127;
-
-			_unsignedDecimal = String.valueOf( unsignedValue );
-			_hexadecimal = Tools.byteToHexString( value );
+			_value = (int)_dataModel.getByte( address );
 		}
 		catch ( IOException e )
 		{
@@ -115,22 +87,22 @@ public class Tile
 
 	public boolean isPrintable()
 	{
-		return _printable;
+		return _value >= 32 && _value <= 127;
 	}
 
 	public String getHexadecimal()
 	{
-		return _hexadecimal;
+		return Tools.byteToHexString( _value );
 	}
 
 	public String getUnsignedDecimal()
 	{
-		return _unsignedDecimal;
+		return String.valueOf( _value & 0xff );
 	}
 
 	public char getCharacter()
 	{
-		return _character;
+		return (char)( _value & 0xff );
 	}
 
 	public Rectangle2D.Float getBounds()
@@ -143,28 +115,23 @@ public class Tile
 
 	public boolean isSelected()
 	{
-		return _viewModel.isSelected( _offset );
+		return _viewModel.isSelected( getAddress() );
 	}
 
 	public boolean isSelectionAnchor()
 	{
-		return !isSelected() && ( _viewModel.isSelected( _offset - 1 ) || _viewModel.isSelected( _offset + 1 ) );
+		return !isSelected() && ( _viewModel.isSelected( getAddress() - 1L ) || _viewModel.isSelected( getAddress() + 1L ) );
 	}
 
 	@Override
 	public int hashCode()
 	{
-		return _offset;
+		return (int)( _address >> 32 ) | (int)_address;
 	}
 
 	@Override
 	public boolean equals( final Object other )
 	{
-		return other instanceof Tile && _offset == ( (Tile)other )._offset;
-	}
-
-	public long getAddress()
-	{
-		return (long)getOffset() + _viewModel.getFirstRowAddress();
+		return other instanceof Tile && _address == ( (Tile)other )._address;
 	}
 }

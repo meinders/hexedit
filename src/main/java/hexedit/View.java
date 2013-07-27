@@ -100,8 +100,7 @@ extends JPanel
 
 		final Rectangle2D.Float viewBounds = Tools.inverseTransform( transform, new Rectangle2D.Float( 0.0f, 0.0f, (float)getWidth(), (float)getHeight() ) );
 
-		final Tile tile = _viewModel.getTile();
-		while ( tile.next() )
+		for ( final Tile tile : _viewModel.getTiles() )
 		{
 			final Rectangle2D.Float bounds = tile.getBounds();
 			if ( !viewBounds.intersects( bounds ) )
@@ -174,23 +173,23 @@ extends JPanel
 */
 		}
 
-		final Tile selectionStart = _viewModel.getSelectionStart();
-		if ( selectionStart != null )
+		if ( _viewModel.getSelectionLength() > 0L )
 		{
 			final String selectionValue = _viewModel.getSelectionValue();
 			if ( selectionValue != null )
 			{
 				final Rectangle2D tipTextBounds = valueMetrics.getStringBounds( selectionValue, g2 );
-				final Rectangle2D.Float tileBounds = selectionStart.getBounds();
+				final Tile tile = _viewModel.getTile( _viewModel.getSelectionStart() );
+				final Rectangle2D.Float tileBounds = tile.getBounds();
 
 				g2.setColor( tipBackground );
-				final Rectangle2D.Double tipBounds = new Rectangle2D.Double( tileBounds.x + tipTextBounds.getMinX(), tileBounds.y + tipTextBounds.getMinY() - 2.0f * tipPadding, tipTextBounds.getWidth() + 2.0f * tipPadding, tipTextBounds.getHeight() + 2.0f * tipPadding );
+				final Rectangle2D.Float tipBounds = new Rectangle2D.Float( tileBounds.x + (float)tipTextBounds.getMinX(), tileBounds.y + (float)tipTextBounds.getMinY() - 2.0f * tipPadding, (float)tipTextBounds.getWidth() + 2.0f * tipPadding, (float)tipTextBounds.getHeight() + 2.0f * tipPadding );
 				g2.fill( tipBounds );
 				g2.setColor( tipBorderColor );
 				g2.draw( tipBounds );
 				g2.setColor( tipForeground );
 				g2.setFont( valueFont );
-				g2.drawString( selectionValue, tileBounds.x + tipPadding, tileBounds.y - valueMetrics.getDescent() );
+				g2.drawString( selectionValue, tileBounds.x + tipPadding, tileBounds.y - (float)valueMetrics.getDescent() );
 			}
 		}
 	}
@@ -206,7 +205,9 @@ extends JPanel
 
 		private Timer _holdTimer;
 
-		private boolean _selectedBeforePress;
+		private long _selectionStart;
+
+		private boolean _selecting;
 
 		private MouseListenerImpl()
 		{
@@ -218,24 +219,27 @@ extends JPanel
 					final Tile tile = _viewModel.getTile( _dragStart );
 					if ( tile != null )
 					{
-						_selectedBeforePress = false;
+						final long address = tile.getAddress();
 
-						final Tile selectionStart = _viewModel.getSelectionStart();
-						final Tile selectionEnd = _viewModel.getSelectionEnd();
+						final long selectionStart = _viewModel.getSelectionStart();
+						final long selectionEnd = _viewModel.getSelectionEnd();
 
-						if ( selectionStart != null && tile.getOffset() == selectionStart.getOffset() - 1 )
+						_selecting = true;
+
+						if ( address == selectionStart - 1L )
 						{
-							_viewModel.setSelectionStart( _viewModel.getSelectionEnd() );
-							_viewModel.setSelectionEnd( tile );
+							_viewModel.setSelectionStart( address );
+							_selectionStart = _viewModel.getSelectionEnd();
 						}
-						else if ( selectionEnd != null && tile.getOffset() == selectionEnd.getOffset() + 1 )
+						else if ( address == selectionEnd + 1L )
 						{
-							_viewModel.setSelectionEnd( tile );
+							_selectionStart = _viewModel.getSelectionStart();
+							_viewModel.setSelectionEnd( address );
 						}
 						else
 						{
-							_viewModel.clearSelection();
-							_viewModel.setSelectionStart( tile );
+							_selectionStart = address;
+							_viewModel.select( address, address );
 						}
 						repaint();
 					}
@@ -248,20 +252,18 @@ extends JPanel
 		public void mousePressed( final MouseEvent e )
 		{
 			_dragStart = e.getPoint();
-			_selectedBeforePress = _viewModel.getSelectionStart() != null;
-//			_viewModel.clearSelection();
 			_holdTimer.restart();
 		}
 
 		@Override
 		public void mouseDragged( final MouseEvent e )
 		{
-			if ( !_selectedBeforePress && _viewModel.getSelectionStart() != null )
+			if ( _selecting )
 			{
 				final Tile tile = _viewModel.getTile( e.getPoint() );
 				if ( tile != null )
 				{
-					_viewModel.setSelectionEnd( tile );
+					_viewModel.select( Math.min( tile.getAddress(), _selectionStart ), Math.max( tile.getAddress(), _selectionStart ) );
 					repaint();
 				}
 			}
@@ -277,11 +279,11 @@ extends JPanel
 		}
 
 		@Override
-		public void mouseReleased( MouseEvent e )
+		public void mouseReleased( final MouseEvent e )
 		{
-			_selectedBeforePress = false;
 			_dragging = false;
 			_holdTimer.stop();
+			_selecting = false;
 		}
 
 		@Override
