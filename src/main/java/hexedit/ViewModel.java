@@ -31,15 +31,13 @@ public class ViewModel
 
 	private int _columns = 24;
 
-	private int _rows = 32;
+	private long _firstRowAddress = 0L;
 
-	private float _x = 0.0f;
+	private float _translateX = 0.0f;
 
-	private float _y = 0.0f;
+	private float _translateY = 0.0f;
 
-	private float _scaleX = 2.0f;
-
-	private float _scaleY = 2.0f;
+	private float _scale = 1.5f;
 
 	private float _tileSize = 30.0f;
 
@@ -56,11 +54,6 @@ public class ViewModel
 		return _columns;
 	}
 
-	public int getRows()
-	{
-		return _rows;
-	}
-
 	public DataModel getDataModel()
 	{
 		return _dataModel;
@@ -75,7 +68,7 @@ public class ViewModel
 	{
 		if ( _affineTransform == null )
 		{
-			_affineTransform = new AffineTransform( _scaleX, 0.0f, 0.0f, _scaleY, _x, _y );
+			_affineTransform = new AffineTransform( _scale, 0.0f, 0.0f, _scale, _translateX, _translateY );
 		}
 		return _affineTransform;
 	}
@@ -132,20 +125,46 @@ public class ViewModel
 
 	public void moveView( final Point2D from, final Point2D to )
 	{
-		_x += (float)( to.getX() - from.getX() );
-		_y += (float)( to.getY() - from.getY() );
+		_translateX += (float)( to.getX() - from.getX() );
+		_translateY += (float)( to.getY() - from.getY() );
 		_affineTransform = null;
+		normalizePosition();
 	}
 
 	public void scale( final Point2D center, final float factor )
 	{
-		final float centerX = (float)center.getX();
-		final float centerY = (float)center.getY();
-		_x = ( _x - centerX ) * factor + centerX;
-		_y = ( _y - centerY ) * factor + centerY;
-		_scaleX *= factor;
-		_scaleY *= factor;
-		_affineTransform = null;
+		final float oldScale = _scale;
+		final float newScale = Math.max( 1.0f, Math.min( 8.0f, oldScale * factor ) );
+		final float actualFactor = newScale / oldScale;
+		if ( actualFactor != 1.0f )
+		{
+			final float centerX = (float)center.getX();
+			final float centerY = (float)center.getY();
+			_translateX = ( _translateX - centerX ) * factor + centerX;
+			_translateY = ( _translateY - centerY ) * factor + centerY;
+			_scale = newScale;
+			_affineTransform = null;
+			normalizePosition();
+		}
+	}
+
+	private void normalizePosition()
+	{
+		final float tileDistance = ( _tileSize + _tilePadding ) * _scale;
+		final float translateY = _translateY;
+
+		int rows = (int)Math.ceil( (double)( translateY / tileDistance ) );
+
+		if ( _firstRowAddress < (long)rows * (long)_columns )
+		{
+			rows = (int)( _firstRowAddress / (long)_columns );
+		}
+
+		if ( rows != 0 )
+		{
+			_firstRowAddress -= (long)rows * (long)_columns;
+			_translateY -= (float)rows * tileDistance;
+		}
 	}
 
 	public Tile getSelectionStart()
@@ -204,24 +223,22 @@ public class ViewModel
 		}
 		else
 		{
-			final int start = Math.min( _selectionStart.getOffset(), _selectionEnd.getOffset() );
-			final int end = Math.max( _selectionStart.getOffset(), _selectionEnd.getOffset() );
+			final long start = Math.min( _selectionStart.getAddress(), _selectionEnd.getAddress() );
+			final long end = Math.max( _selectionStart.getAddress(), _selectionEnd.getAddress() );
 			if ( selectionLength >= 2 && selectionLength <= 8 )
 			{
 				try
 				{
-					final byte[] bytes = _dataModel.getBytes();
-
 					long bigEndian = 0L;
-					for ( int offset = start; offset <= end; offset++ )
+					for ( long offset = start; offset <= end; offset++ )
 					{
-						bigEndian = ( bigEndian << 8 ) | ( (long)bytes[ offset ] & 0xffL );
+						bigEndian = ( bigEndian << 8 ) | ( (long)_dataModel.getByte( offset ) & 0xffL );
 					}
 
 					long littleEndian = 0L;
-					for ( int offset = end; offset >= start; offset-- )
+					for ( long offset = end; offset >= start; offset-- )
 					{
-						littleEndian = ( littleEndian << 8 ) | ( (long)bytes[ offset ] & 0xffL );
+						littleEndian = ( littleEndian << 8 ) | ( (long)_dataModel.getByte( offset ) & 0xffL );
 					}
 
 					final StringBuilder builder = new StringBuilder();
@@ -299,5 +316,10 @@ public class ViewModel
 		{
 			return null;
 		}
+	}
+
+	public long getFirstRowAddress()
+	{
+		return _firstRowAddress;
 	}
 }

@@ -63,7 +63,7 @@ public class Tile
 
 	public boolean next()
 	{
-		if ( ++_offset < _dataModel.getWindowSize() )
+		if ( ++_offset < 800 )
 		{
 			init();
 			return true;
@@ -88,8 +88,7 @@ public class Tile
 
 		try
 		{
-			final byte[] bytes = _dataModel.getBytes();
-			final int value = (int)bytes[ _offset ];
+			final int value = (int)_dataModel.getByte( getAddress() );
 			final int unsignedValue = value & 0xff;
 
 			_character = (char)unsignedValue;
@@ -166,6 +165,6 @@ public class Tile
 
 	public long getAddress()
 	{
-		return (long)getOffset() + _dataModel.getOffset();
+		return (long)getOffset() + _viewModel.getFirstRowAddress();
 	}
 }

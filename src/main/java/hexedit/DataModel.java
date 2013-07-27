@@ -22,7 +22,9 @@ import java.nio.*;
 import java.nio.channels.*;
 
 /**
- * FIXME Need comment
+ * Provides access to data from a {@link FileChannel}. The entire file can be
+ * accessed, but only a very small piece of the file is kept in memory at any
+ * given time.
  *
  * @author Gerrit Meinders
  */
@@ -38,6 +40,8 @@ public class DataModel
 
 	private URI _dataSource;
 
+	private ByteBuffer _buffer;
+
 	/**
 	 * Constructs a new instance.
 	 *
@@ -48,7 +52,7 @@ public class DataModel
 	{
 		_channel = channel;
 		_dataSource = dataSource;
-		_windowSize = 0x10000;
+		_windowSize = 0x10000; // 64k
 	}
 
 	public long getOffset()
@@ -76,17 +80,41 @@ public class DataModel
 		{
 			_windowSize = windowSize;
 			_bytes = null;
+			_buffer = null;
 		}
 	}
 
-	public byte[] getBytes()
+	public ByteBuffer getBuffer()
+	{
+		if ( _buffer == null )
+		{
+			_buffer = ByteBuffer.allocateDirect( _windowSize );
+		}
+		return _buffer;
+	}
+
+	public byte getByte( final long address )
+	throws IOException
+	{
+		final long relativeAddress = address - _offset;
+		if ( relativeAddress < 0L || relativeAddress >= (long)_windowSize )
+		{
+			setOffset( Math.max( 0L, address - (long)( _windowSize / 2 ) ) );
+		}
+		final int index = (int)( address - _offset );
+		final byte[] bytes = getBytes();
+		return index >= bytes.length ? (byte)0 : bytes[ index ];
+	}
+
+	private byte[] getBytes()
 	throws IOException
 	{
 		if ( _bytes == null )
 		{
 			_channel.position( _offset );
-			final ByteBuffer buffer = ByteBuffer.allocateDirect( _windowSize );
 
+			final ByteBuffer buffer = getBuffer();
+			buffer.rewind();
 			while ( buffer.hasRemaining() && _channel.read( buffer ) != -1 )
 			{
 			}
@@ -105,7 +133,7 @@ public class DataModel
 		return _dataSource;
 	}
 
-	public void setDataSource( URI dataSource )
+	public void setDataSource( final URI dataSource )
 	{
 		_dataSource = dataSource;
 	}
