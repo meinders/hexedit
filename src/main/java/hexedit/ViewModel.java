@@ -38,11 +38,11 @@ public class ViewModel
 
 	private float _translateY = 0.0f;
 
-	private float _scale = 1.5f;
+	private float _scale = 1.0f;
 
-	private float _tileSize = 30.0f;
+	private float _tileSize = 45.0f;
 
-	private float _tilePadding = 2.0f;
+	private float _tilePadding = 3.0f;
 
 	private AffineTransform _affineTransform;
 
@@ -229,22 +229,12 @@ public class ViewModel
 		else
 		{
 			final long start = _selectionStart;
-			final long end = _selectionEnd;
-			if ( selectionLength >= 2 && selectionLength <= 8 )
+			if ( selectionLength >= 2L && selectionLength <= 8L )
 			{
 				try
 				{
-					long bigEndian = 0L;
-					for ( long offset = start; offset <= end; offset++ )
-					{
-						bigEndian = ( bigEndian << 8 ) | ( (long)_dataModel.getByte( offset ) & 0xffL );
-					}
-
-					long littleEndian = 0L;
-					for ( long offset = end; offset >= start; offset-- )
-					{
-						littleEndian = ( littleEndian << 8 ) | ( (long)_dataModel.getByte( offset ) & 0xffL );
-					}
+					final long bigEndian = _dataModel.getBigEndian( start, (int)selectionLength );
+					final long littleEndian = _dataModel.getLittleEndian( start, (int)selectionLength );
 
 					final StringBuilder builder = new StringBuilder();
 					builder.append( "int: LE " );
@@ -274,6 +264,7 @@ public class ViewModel
 			}
 			else
 			{
+				final long end = _selectionEnd;
 				return "Length: " + selectionLength + ", start: " + ( _dataModel.getOffset() + start ) + ", end: " + ( _dataModel.getOffset() + end );
 			}
 		}

@@ -50,13 +50,14 @@ public class Main
 
 		final DataModel dataModel = new DataModel( dataSource, channel );
 
+		final ViewModel viewModel = new ViewModel();
+		viewModel.setDataModel( dataModel );
+
 		SwingUtilities.invokeLater( new Runnable()
 		{
+			@Override
 			public void run()
 			{
-				final ViewModel viewModel = new ViewModel();
-				viewModel.setDataModel( dataModel );
-
 				final View view = new View();
 				view.setViewModel( viewModel );
 

@@ -64,11 +64,11 @@ extends JPanel
 		final AffineTransform transform = _viewModel.getTransform();
 		g2.setTransform( transform );
 
-		final Font sourceFont = new Font( Font.SERIF, Font.ITALIC, 28 );
-		final Font sourceDetailsFont = new Font( Font.SANS_SERIF, Font.PLAIN, 10 );
-		final Font characterFont = new Font( Font.SERIF, Font.BOLD, 12 );
-		final Font valueFont = new Font( Font.MONOSPACED, Font.PLAIN, 8 );
-		final Font addressFont = new Font( Font.MONOSPACED, Font.PLAIN, 8 );
+		final Font sourceFont = new Font( Font.SERIF, Font.ITALIC, 42 );
+		final Font sourceDetailsFont = new Font( Font.SANS_SERIF, Font.PLAIN, 15 );
+		final Font characterFont = new Font( Font.SERIF, Font.BOLD, 18 );
+		final Font valueFont = new Font( Font.MONOSPACED, Font.PLAIN, 12 );
+		final Font addressFont = new Font( Font.MONOSPACED, Font.PLAIN, 12 );
 
 		final FontMetrics sourceMetrics = g2.getFontMetrics( sourceFont );
 		final FontMetrics sourceDetailsMetrics = g2.getFontMetrics( sourceDetailsFont );
