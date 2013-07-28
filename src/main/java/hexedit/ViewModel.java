@@ -27,6 +27,7 @@ import java.util.*;
  * @author Gerrit Meinders
  */
 public class ViewModel
+extends Observable
 {
 	private DataModel _dataModel;
 
@@ -62,7 +63,12 @@ public class ViewModel
 
 	public void setDataModel( final DataModel dataModel )
 	{
-		_dataModel = dataModel;
+		if ( _dataModel != dataModel )
+		{
+			_dataModel = dataModel;
+			setChanged();
+			notifyObservers();
+		}
 	}
 
 	public AffineTransform getTransform()
@@ -133,10 +139,17 @@ public class ViewModel
 
 	public void moveView( final Point2D from, final Point2D to )
 	{
-		_translateX += (float)( to.getX() - from.getX() );
-		_translateY += (float)( to.getY() - from.getY() );
-		_affineTransform = null;
-		normalizePosition();
+		final float dx = (float)( to.getX() - from.getX() );
+		final float dy = (float)( to.getY() - from.getY() );
+		if ( dx != 0.0f || dy != 0.0f )
+		{
+			_translateX += dx;
+			_translateY += dy;
+			_affineTransform = null;
+			normalizePosition();
+			setChanged();
+			notifyObservers();
+		}
 	}
 
 	public void scale( final Point2D center, final float factor )
@@ -153,6 +166,8 @@ public class ViewModel
 			_scale = newScale;
 			_affineTransform = null;
 			normalizePosition();
+			setChanged();
+			notifyObservers();
 		}
 	}
 
@@ -182,7 +197,12 @@ public class ViewModel
 
 	public void setSelectionStart( final long selectionStart )
 	{
-		_selectionStart = selectionStart;
+		if ( _selectionStart != selectionStart )
+		{
+			_selectionStart = selectionStart;
+			setChanged();
+			notifyObservers();
+		}
 	}
 
 	public long getSelectionEnd()
@@ -192,7 +212,12 @@ public class ViewModel
 
 	public void setSelectionEnd( final long selectionEnd )
 	{
-		_selectionEnd = selectionEnd;
+		if ( _selectionEnd != selectionEnd )
+		{
+			_selectionEnd = selectionEnd;
+			setChanged();
+			notifyObservers();
+		}
 	}
 
 	public long getSelectionLength()
@@ -202,14 +227,32 @@ public class ViewModel
 
 	public void select( final long start, final long end )
 	{
-		_selectionStart = Math.min( start, end );
-		_selectionEnd = Math.max( start, end );
+		final long newStart = Math.min( start, end );
+		if ( _selectionStart != newStart )
+		{
+			_selectionStart = newStart;
+			setChanged();
+		}
+
+		final long newEnd = Math.max( start, end );
+		if ( _selectionEnd != newEnd )
+		{
+			_selectionEnd = newEnd;
+			setChanged();
+		}
+
+		notifyObservers();
 	}
 
 	public void clearSelection()
 	{
-		_selectionStart = 0L;
-		_selectionEnd = -1L;
+		if ( getSelectionLength() > 0L )
+		{
+			_selectionStart = 0L;
+			_selectionEnd = -1L;
+			setChanged();
+			notifyObservers();
+		}
 	}
 
 	public boolean isSelected( final long address )

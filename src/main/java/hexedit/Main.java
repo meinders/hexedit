@@ -66,19 +66,6 @@ public class Main
 				frame.setDefaultCloseOperation( WindowConstants.DISPOSE_ON_CLOSE );
 				frame.setBounds( 400, 100, 1280, 800 );
 				frame.setVisible( true );
-
-/*
-				final Timer timer = new Timer( 50, new ActionListener()
-				{
-					@Override
-					public void actionPerformed( final ActionEvent e )
-					{
-						panel.repaint();
-					}
-				} );
-				timer.setRepeats( true );
-				timer.start();
-*/
 			}
 		} );
 	}

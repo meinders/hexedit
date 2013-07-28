@@ -19,7 +19,9 @@ package hexedit;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
+import java.util.*;
 import javax.swing.*;
+import javax.swing.Timer;
 
 /**
  * FIXME Need comment
@@ -29,7 +31,23 @@ import javax.swing.*;
 public class View
 extends JPanel
 {
+	/**
+	 * Model backing the view.
+	 */
 	private ViewModel _viewModel;
+
+	/**
+	 * Triggers an update of the view when its model changes.
+	 */
+	private Observer _viewModelObserver = new Observer()
+	{
+		@Override
+		public void update( final Observable o, final Object arg )
+		{
+			System.out.println( "View.update()" );
+			repaint();
+		}
+	};
 
 	public View()
 	{
@@ -49,7 +67,18 @@ extends JPanel
 
 	public void setViewModel( final ViewModel viewModel )
 	{
-		_viewModel = viewModel;
+		if ( _viewModel != viewModel )
+		{
+			if ( _viewModel != null )
+			{
+				_viewModel.deleteObserver( _viewModelObserver );
+			}
+			_viewModel = viewModel;
+			if ( viewModel != null )
+			{
+				viewModel.addObserver( _viewModelObserver );
+			}
+		}
 	}
 
 	@Override
@@ -241,7 +270,6 @@ extends JPanel
 							_selectionStart = address;
 							_viewModel.select( address, address );
 						}
-						repaint();
 					}
 				}
 			} );
@@ -264,7 +292,6 @@ extends JPanel
 				if ( tile != null )
 				{
 					_viewModel.select( Math.min( tile.getAddress(), _selectionStart ), Math.max( tile.getAddress(), _selectionStart ) );
-					repaint();
 				}
 			}
 			else if ( _dragging || (float)_dragStart.distanceSq( e.getPoint() ) > _dragThreshold * _dragThreshold )
@@ -274,7 +301,6 @@ extends JPanel
 				_viewModel.moveView( _dragStart, dragEnd );
 				_dragStart = dragEnd;
 				_holdTimer.stop();
-				repaint();
 			}
 		}
 
@@ -290,7 +316,6 @@ extends JPanel
 		public void mouseWheelMoved( final MouseWheelEvent e )
 		{
 			_viewModel.scale( e.getPoint(), (float)Math.pow( 0.5, e.getPreciseWheelRotation() / 3.0 ) );
-			repaint();
 		}
 	}
 }
