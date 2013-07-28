@@ -114,7 +114,7 @@ public class DataModel
 			_channel.position( _offset );
 
 			final ByteBuffer buffer = getBuffer();
-			buffer.rewind();
+			buffer.clear();
 			while ( buffer.hasRemaining() && _channel.read( buffer ) != -1 )
 			{
 			}
