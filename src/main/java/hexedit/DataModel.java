@@ -138,22 +138,22 @@ public class DataModel
 		_dataSource = dataSource;
 	}
 
-	public long getBigEndian( final long start, final int selectionLength )
+	public long getBigEndian( final long start, final int length )
 	throws IOException
 	{
 		long result = 0L;
-		for ( long offset = start, end = start + (long)selectionLength - 1L; offset < end; offset++ )
+		for ( long offset = start, end = start + (long)length - 1L; offset < end; offset++ )
 		{
 			result = ( result << 8 ) | ( (long)getByte( offset ) & 0xffL );
 		}
 		return result;
 	}
 
-	public long getLittleEndian( final long start, final int selectionLength )
+	public long getLittleEndian( final long start, final int length )
 	throws IOException
 	{
 		long result = 0L;
-		for ( long offset = start + (long)selectionLength - 1L; offset >= start; offset-- )
+		for ( long offset = start + (long)length - 1L; offset >= start; offset-- )
 		{
 			result = ( result << 8 ) | ( (long)getByte( offset ) & 0xffL );
 		}
