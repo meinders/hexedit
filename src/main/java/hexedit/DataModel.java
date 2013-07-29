@@ -142,7 +142,7 @@ public class DataModel
 	throws IOException
 	{
 		long result = 0L;
-		for ( long offset = start, end = start + (long)length - 1L; offset < end; offset++ )
+		for ( long offset = start, end = start + (long)length; offset < end; offset++ )
 		{
 			result = ( result << 8 ) | ( (long)getByte( offset ) & 0xffL );
 		}
