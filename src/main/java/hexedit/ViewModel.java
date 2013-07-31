@@ -16,6 +16,7 @@
  */
 package hexedit;
 
+import java.awt.*;
 import java.awt.geom.*;
 import java.io.*;
 import java.net.*;
@@ -35,9 +36,9 @@ extends Observable
 
 	private long _firstRowAddress = 0L;
 
-	private float _translateX = 0.0f;
+	private float _translateX;
 
-	private float _translateY = 0.0f;
+	private float _translateY;
 
 	private float _scale = 1.0f;
 
@@ -50,6 +51,23 @@ extends Observable
 	private long _selectionStart = 0L;
 
 	private long _selectionEnd = -1L;
+
+	private float _headerHeight = 150.0f;
+
+	private Highlighter _highlighter = new Highlighter()
+	{
+		@Override
+		public Color getColor( final long address )
+		{
+			return null;
+		}
+	};
+
+	public ViewModel()
+	{
+		_translateX = ( _tileSize + _tilePadding ) * 2.0f;
+		_translateY = _headerHeight;
+	}
 
 	public int getColumns()
 	{
@@ -152,12 +170,31 @@ extends Observable
 		}
 	}
 
+	public void jumpTo( final long address )
+	{
+		final long firstRowAddress = Math.max( 0L, address - ( address % (long)_columns ) - (long)_columns * 2L );
+		if ( _firstRowAddress != firstRowAddress )
+		{
+			_firstRowAddress = firstRowAddress;
+			setChanged();
+		}
+
+		if ( _translateY != 0.0f )
+		{
+			_translateY = 0.0f;
+			_affineTransform = null;
+			setChanged();
+		}
+
+		notifyObservers();
+	}
+
 	public void scale( final Point2D center, final float factor )
 	{
 		final float oldScale = _scale;
 		final float newScale = Math.max( 1.0f, Math.min( 8.0f, oldScale * factor ) );
 		final float actualFactor = newScale / oldScale;
-		if ( actualFactor != 1.0f )
+		if ( Math.abs( actualFactor - 1.0f ) > 0.001f )
 		{
 			final float centerX = (float)center.getX();
 			final float centerY = (float)center.getY();
@@ -187,6 +224,11 @@ extends Observable
 		{
 			_firstRowAddress -= (long)rows * (long)_columns;
 			_translateY -= (float)rows * tileDistance;
+		}
+
+		if ( ( _firstRowAddress == 0L ) && ( _translateY > _headerHeight ) )
+		{
+			_translateY = _headerHeight;
 		}
 	}
 
@@ -263,15 +305,15 @@ extends Observable
 	public String getSelectionValue()
 	{
 		final long selectionLength = getSelectionLength();
+		final long start = getSelectionStart();
 
 		if ( selectionLength == 1L )
 		{
-			final Tile tile = getTile( getSelectionStart() );
-			return tile.getUnsignedDecimal();
+			final Tile tile = getTile( start );
+			return "[" + start + "] " + tile.getUnsignedDecimal();
 		}
 		else
 		{
-			final long start = _selectionStart;
 			if ( selectionLength >= 2L && selectionLength <= 8L )
 			{
 				try
@@ -280,18 +322,21 @@ extends Observable
 					final long littleEndian = _dataModel.getLittleEndian( start, (int)selectionLength );
 
 					final StringBuilder builder = new StringBuilder();
+					builder.append( "[" );
+					builder.append( start );
+					builder.append( "] " );
 					builder.append( "int: LE " );
 					builder.append( littleEndian );
 					builder.append( " / BE " );
 					builder.append( bigEndian );
-					if ( selectionLength == 4 )
+					if ( selectionLength == 4L )
 					{
 						builder.append( " -- float: LE " );
 						builder.append( Float.intBitsToFloat( (int)littleEndian ) );
 						builder.append( " / BE " );
 						builder.append( Float.intBitsToFloat( (int)bigEndian ) );
 					}
-					else if ( selectionLength == 8 )
+					else if ( selectionLength == 8L )
 					{
 						builder.append( " -- float: LE " );
 						builder.append( Double.longBitsToDouble( littleEndian ) );
@@ -359,6 +404,16 @@ extends Observable
 				return new TileIterator( getTile( start ), end );
 			}
 		};
+	}
+
+	public void setHighlighter( final Highlighter highlighter )
+	{
+		_highlighter = highlighter;
+	}
+
+	public Highlighter getHighlighter()
+	{
+		return _highlighter;
 	}
 
 	private static class TileIterator

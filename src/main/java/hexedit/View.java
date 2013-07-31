@@ -44,7 +44,6 @@ extends JPanel
 		@Override
 		public void update( final Observable o, final Object arg )
 		{
-			System.out.println( "View.update()" );
 			repaint();
 		}
 	};
@@ -89,8 +88,11 @@ extends JPanel
 
 		g2.setRenderingHint( RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON );
 		g2.setRenderingHint( RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON );
+		g2.setRenderingHint( RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON );
 
-		final AffineTransform transform = _viewModel.getTransform();
+		final ViewModel viewModel = _viewModel;
+
+		final AffineTransform transform = viewModel.getTransform();
 		g2.setTransform( transform );
 
 		final Font sourceFont = new Font( Font.SERIF, Font.ITALIC, 42 );
@@ -125,11 +127,13 @@ extends JPanel
 		final float addressMargin = 10.0f;
 
 		final float characterY = (float)characterMetrics.getAscent();
-		final float decimalY = _viewModel.getTileSize() - (float)valueMetrics.getDescent();
+		final float decimalY = viewModel.getTileSize() - (float)valueMetrics.getDescent();
 
 		final Rectangle2D.Float viewBounds = Tools.inverseTransform( transform, new Rectangle2D.Float( 0.0f, 0.0f, (float)getWidth(), (float)getHeight() ) );
 
-		for ( final Tile tile : _viewModel.getTiles() )
+		final Highlighter highlighter = viewModel.getHighlighter();
+
+		for ( final Tile tile : viewModel.getTiles() )
 		{
 			final Rectangle2D.Float bounds = tile.getBounds();
 			if ( !viewBounds.intersects( bounds ) )
@@ -137,21 +141,26 @@ extends JPanel
 				continue;
 			}
 
+			final long address = tile.getAddress();
+
 			if ( tile.isSelected() )
 			{
 				g2.setColor( selectionBackground );
 			}
 			else
 			{
-				g2.setColor( charBackground  );
+				final Color color = highlighter.getColor( tile.getAddress() );
+				if ( color == null )
+				{
+					g2.setColor( charBackground );
+				}
+				else
+				{
+					g2.setColor( color );
+				}
 			}
-			g2.fill( bounds );
 
-			if ( tile.isSelectionAnchor() )
-			{
-				g2.setColor( selectionBackground );
-				g2.draw( bounds );
-			}
+			g2.fill( bounds );
 
 			if ( tile.isPrintable() )
 			{
@@ -170,45 +179,32 @@ extends JPanel
 
 			if ( tile.getColumn() == 0 )
 			{
-				{
-					final long address = tile.getAddress();
-					final String addressLabel = Long.toString( address );
-					final Rectangle2D stringBounds = addressMetrics.getStringBounds( addressLabel, g2 );
-					g2.setColor( addressForeground );
-					g2.setFont( addressFont );
-					g2.drawString( addressLabel, -addressMargin -(float)stringBounds.getMaxX(), (float)bounds.getCenterY() - (float)stringBounds.getY() - (float)stringBounds.getHeight() / 2.0f );
-				}
+				final String addressLabel = Long.toString( address );
+				final Rectangle2D stringBounds = addressMetrics.getStringBounds( addressLabel, g2 );
+				g2.setColor( addressForeground );
+				g2.setFont( addressFont );
+				g2.drawString( addressLabel, -addressMargin -(float)stringBounds.getMaxX(), (float)bounds.getCenterY() - (float)stringBounds.getY() - (float)stringBounds.getHeight() / 2.0f );
 			}
 		}
 
 		if ( viewBounds.getY() < 0.0 )
 		{
 			g2.setColor( headerBackground );
-			g2.fill( new Rectangle2D.Float( viewBounds.x, Math.min( viewBounds.y, -viewBounds.height - _viewModel.getTilePadding() ), viewBounds.width, viewBounds.height ) );
+			g2.fill( new Rectangle2D.Float( viewBounds.x, Math.min( viewBounds.y, -viewBounds.height - viewModel.getTilePadding() ), viewBounds.width, viewBounds.height ) );
 
-			final String dataSource = _viewModel.getDataSourceName();
+			final String dataSource = viewModel.getDataSourceName();
 			g2.setColor( sourceForeground );
 			g2.setFont( sourceFont );
-			g2.drawString( dataSource, 0.0f, -_viewModel.getTileSize() );
-
-/*
-					final String details = _viewModel.getDataSourceDetails();
-					if ( details != null )
-					{
-						g2.setColor( sourceDetailsForeground );
-						g2.setFont( sourceDetailsFont );
-						g2.drawString( details, 0.0f, (float)sourceMetrics.getDescent() + sourceDetailsMetrics.getAscent() - _viewModel.getTileSize() );
-					}
-*/
+			g2.drawString( dataSource, 0.0f, -viewModel.getTileSize() );
 		}
 
-		if ( _viewModel.getSelectionLength() > 0L )
+		if ( viewModel.getSelectionLength() > 0L )
 		{
-			final String selectionValue = _viewModel.getSelectionValue();
+			final String selectionValue = viewModel.getSelectionValue();
 			if ( selectionValue != null )
 			{
 				final Rectangle2D tipTextBounds = valueMetrics.getStringBounds( selectionValue, g2 );
-				final Tile tile = _viewModel.getTile( _viewModel.getSelectionStart() );
+				final Tile tile = viewModel.getTile( viewModel.getSelectionStart() );
 				final Rectangle2D.Float tileBounds = tile.getBounds();
 
 				g2.setColor( tipBackground );
@@ -255,12 +251,12 @@ extends JPanel
 
 						_selecting = true;
 
-						if ( address == selectionStart - 1L )
+						if ( address == selectionStart )
 						{
 							_viewModel.setSelectionStart( address );
 							_selectionStart = _viewModel.getSelectionEnd();
 						}
-						else if ( address == selectionEnd + 1L )
+						else if ( address == selectionEnd )
 						{
 							_selectionStart = _viewModel.getSelectionStart();
 							_viewModel.setSelectionEnd( address );

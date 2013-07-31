@@ -118,11 +118,6 @@ public class Tile
 		return _viewModel.isSelected( getAddress() );
 	}
 
-	public boolean isSelectionAnchor()
-	{
-		return !isSelected() && ( _viewModel.isSelected( getAddress() - 1L ) || _viewModel.isSelected( getAddress() + 1L ) );
-	}
-
 	@Override
 	public int hashCode()
 	{

@@ -17,13 +17,13 @@
 package hexedit;
 
 import java.io.*;
-import java.net.*;
 import java.nio.channels.*;
-import java.nio.file.*;
+import java.util.*;
 import javax.swing.*;
 
 /**
- * FIXME Need comment
+ * Main class that starts the hex editor to edit one or more files specified
+ * on the command-line.
  *
  * @author Gerrit Meinders
  */
@@ -35,23 +35,33 @@ public class Main
 	 * @param   args    Command-line arguments.
 	 */
 	public static void main( final String[] args )
-	throws IOException
 	{
 		if ( args.length == 0 )
 		{
-			System.err.println( "Usage: java hexedit.Main <filename>" );
+			System.err.println( "Usage: java hexedit.Main <filename>..." );
 			return;
 		}
 
-		final File file = new File( args[ 0 ] );
-		final URI dataSource = file.toURI();
-		final Path path = Paths.get( dataSource );
-		final FileChannel channel = FileChannel.open( path );
-
-		final DataModel dataModel = new DataModel( dataSource, channel );
+		final List<DataModel> dataModels = new ArrayList<DataModel>();
+		for ( final String arg : args )
+		{
+			try
+			{
+				dataModels.add( createDataModel( arg ) );
+			}
+			catch ( IOException e )
+			{
+				System.err.println( "Failed to open file: " + arg );
+				return;
+			}
+		}
 
 		final ViewModel viewModel = new ViewModel();
-		viewModel.setDataModel( dataModel );
+		viewModel.setDataModel( dataModels.get( 0 ) );
+		if ( dataModels.size() > 1 )
+		{
+			viewModel.setHighlighter( new DifferenceHighlighter( dataModels ) );
+		}
 
 		SwingUtilities.invokeLater( new Runnable()
 		{
@@ -68,5 +78,13 @@ public class Main
 				frame.setVisible( true );
 			}
 		} );
+	}
+
+	private static DataModel createDataModel( final String filename )
+	throws IOException
+	{
+		final File file = new File( filename );
+		final FileChannel channel = FileChannel.open( file.toPath() );
+		return new DataModel( file.toURI(), channel );
 	}
 }

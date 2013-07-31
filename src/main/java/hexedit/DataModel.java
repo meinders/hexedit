@@ -159,4 +159,10 @@ public class DataModel
 		}
 		return result;
 	}
+
+	public long getLength()
+	throws IOException
+	{
+		return _channel.size();
+	}
 }
