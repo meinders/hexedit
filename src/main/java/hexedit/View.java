@@ -36,6 +36,8 @@ extends JPanel
 	 */
 	private ViewModel _viewModel;
 
+	private Menu _menu;
+
 	/**
 	 * Triggers an update of the view when its model changes.
 	 */
@@ -80,6 +82,17 @@ extends JPanel
 		}
 	}
 
+	public Menu getMenu()
+	{
+		return _menu;
+	}
+
+	public void setMenu( final Menu menu )
+	{
+		_menu = menu;
+		repaint();
+	}
+
 	@Override
 	protected void paintComponent( final Graphics g )
 	{
@@ -92,8 +105,9 @@ extends JPanel
 
 		final ViewModel viewModel = _viewModel;
 
+		final Graphics2D staticGraphics = (Graphics2D)g2.create();
 		final AffineTransform transform = viewModel.getTransform();
-		g2.setTransform( transform );
+		g2.transform( transform );
 
 		final Font sourceFont = new Font( Font.SERIF, Font.ITALIC, 42 );
 		final Font sourceDetailsFont = new Font( Font.SANS_SERIF, Font.PLAIN, 15 );
@@ -195,7 +209,7 @@ extends JPanel
 			final String dataSource = viewModel.getDataSourceName();
 			g2.setColor( sourceForeground );
 			g2.setFont( sourceFont );
-			g2.drawString( dataSource, 0.0f, -viewModel.getTileSize() );
+			g2.drawString( dataSource, 0.0f, -viewModel.getTileSize() - viewModel.getTilePadding() );
 		}
 
 		if ( viewModel.getSelectionLength() > 0L )
@@ -217,6 +231,52 @@ extends JPanel
 				g2.drawString( selectionValue, tileBounds.x + tipPadding, tileBounds.y - (float)valueMetrics.getDescent() );
 			}
 		}
+
+		if ( _menu != null )
+		{
+			drawButtonBar( staticGraphics, _menu );
+		}
+	}
+
+	private void drawButtonBar( final Graphics2D g, final Menu menu )
+	{
+		final ViewModel viewModel = _viewModel;
+		final float barHeight = viewModel.getTileSize();
+
+		final Rectangle2D.Float bar = new Rectangle2D.Float( 0.0f, getHeight() - 1.5f * barHeight, getWidth(), 1.5f * barHeight );
+		g.setColor( menu.getBackground() );
+		g.fill( bar );
+
+		g.setColor( new Color( 0xffffff ) );
+		g.setFont( new Font( Font.SANS_SERIF, Font.BOLD, 15 ) );
+		drawString( g, new Rectangle2D.Float( 0.0f, getHeight() - 1.5f * barHeight, getWidth(), 0.5f * barHeight ), 0.5f, 0.5f, menu.getText() );
+
+		int buttonColumn = 0;
+		final String group = null;
+		for ( final MenuItem menuItem : menu.getItems() )
+		{
+			final Rectangle2D.Float bounds = new Rectangle2D.Float( buttonColumn * ( viewModel.getTileSize() + viewModel.getTilePadding() ), bar.y + bar.height - viewModel.getTileSize(), menuItem.getWidth() * ( viewModel.getTileSize() + viewModel.getTilePadding() ) - viewModel.getTilePadding(), viewModel.getTileSize() );
+			final Color buttonBackground = menuItem.getBackground();
+			if ( buttonBackground != null )
+			{
+				g.setColor( buttonBackground );
+				g.fill( bounds );
+			}
+
+			g.setColor( new Color( 0xffffff ) );
+			g.setFont( new Font( Font.SANS_SERIF, Font.BOLD, 15 ) );
+			drawString( g, bounds, 0.5f, 0.5f, menuItem.getText() );
+
+			buttonColumn += menuItem.getWidth();
+		}
+	}
+
+	private void drawString( final Graphics2D g2, final Rectangle2D.Float bounds, final float horizontalAlignment, final float verticalAlignment, final String string )
+	{
+		final FontMetrics fontMetrics = g2.getFontMetrics();
+		final float x = bounds.x + horizontalAlignment * ( bounds.width - fontMetrics.stringWidth( string ) );
+		final float y = bounds.y + fontMetrics.getAscent() + verticalAlignment * ( bounds.height - fontMetrics.getHeight() );
+		g2.drawString( string, x, y );
 	}
 
 	private class MouseListenerImpl
@@ -276,7 +336,10 @@ extends JPanel
 		public void mousePressed( final MouseEvent e )
 		{
 			_dragStart = e.getPoint();
-			_holdTimer.restart();
+			if ( e.getY() < getHeight() - _viewModel.getTileSize() )
+			{
+				_holdTimer.restart();
+			}
 		}
 
 		@Override
@@ -306,6 +369,24 @@ extends JPanel
 			_dragging = false;
 			_holdTimer.stop();
 			_selecting = false;
+		}
+
+		@Override
+		public void mouseClicked( final MouseEvent e )
+		{
+			if ( _menu != null && e.getY() >= getHeight() - _viewModel.getTileSize() )
+			{
+				final int column = (int)( e.getX() / ( _viewModel.getTileSize() + _viewModel.getTilePadding() ) );
+				final MenuItem item = _menu.getItem( column );
+				if ( item != null )
+				{
+					final Action action = item.getAction();
+					if ( action != null )
+					{
+						action.actionPerformed( null );
+					}
+				}
+			}
 		}
 
 		@Override
