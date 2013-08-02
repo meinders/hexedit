@@ -117,7 +117,7 @@ public class Main
 			}
 		} );
 
-		final AbstractAction startOfFile = new AbstractAction( "start" )
+		final Action startOfFile = new AbstractAction( "start" )
 		{
 			@Override
 			public void actionPerformed( final ActionEvent e )
@@ -127,7 +127,7 @@ public class Main
 			}
 		};
 
-		final AbstractAction jumpAbsolute = new AbstractAction( "jump" )
+		final Action jumpAbsolute = new AbstractAction( "jump" )
 		{
 			@Override
 			public void actionPerformed( final ActionEvent e )
@@ -151,7 +151,7 @@ public class Main
 			}
 		};
 
-		final AbstractAction endOfFile = new AbstractAction( "end" )
+		final Action endOfFile = new AbstractAction( "end" )
 		{
 			@Override
 			public void actionPerformed( final ActionEvent e )
@@ -169,7 +169,7 @@ public class Main
 			}
 		};
 
-		final AbstractAction startOfRecord = new AbstractAction( "start" )
+		final Action startOfRecord = new AbstractAction( "start" )
 		{
 			@Override
 			public void actionPerformed( final ActionEvent e )
@@ -183,7 +183,7 @@ public class Main
 			}
 		};
 
-		final AbstractAction jumpRelative = new AbstractAction( "jump" )
+		final Action jumpRelative = new AbstractAction( "jump" )
 		{
 			@Override
 			public void actionPerformed( final ActionEvent e )
@@ -208,7 +208,7 @@ public class Main
 			}
 		};
 
-		final AbstractAction endOfRecord = new AbstractAction( "end" )
+		final Action endOfRecord = new AbstractAction( "end" )
 		{
 			@Override
 			public void actionPerformed( final ActionEvent e )
@@ -222,7 +222,7 @@ public class Main
 			}
 		};
 
-		final AbstractAction parentRecord = new AbstractAction( "parent" )
+		final Action parentRecord = new AbstractAction( "parent" )
 		{
 			@Override
 			public void actionPerformed( final ActionEvent e )
@@ -240,7 +240,7 @@ public class Main
 			}
 		};
 
-		final MenuItem newRecord = new MenuItem( new AbstractAction( "new" )
+		final Action newRecord = new AbstractAction( "new" )
 		{
 			@Override
 			public void actionPerformed( final ActionEvent e )
@@ -256,9 +256,9 @@ public class Main
 					viewModel.clearSelection();
 				}
 			}
-		}, 2 );
+		};
 
-		final MenuItem setRecordStart = new MenuItem( new AbstractAction( "start" )
+		final Action setRecordStart = new AbstractAction( "start" )
 		{
 			@Override
 			public void actionPerformed( final ActionEvent e )
@@ -285,9 +285,9 @@ public class Main
 					}
 				}
 			}
-		}, 2 );
+		};
 
-		final MenuItem setRecordEnd = new MenuItem( new AbstractAction( "end" )
+		final Action setRecordEnd = new AbstractAction( "end" )
 		{
 			@Override
 			public void actionPerformed( final ActionEvent e )
@@ -304,9 +304,9 @@ public class Main
 					}
 				}
 			}
-		}, 2 );
+		};
 
-		final MenuItem setRecordLength = new MenuItem( new AbstractAction( "length" )
+		final Action setRecordLength = new AbstractAction( "length" )
 		{
 			@Override
 			public void actionPerformed( final ActionEvent e )
@@ -335,9 +335,9 @@ public class Main
 					}
 				}
 			}
-		}, 2 );
+		};
 
-		final MenuItem setRecordCount = new MenuItem( new AbstractAction( "count" )
+		final Action setRecordCount = new AbstractAction( "count" )
 		{
 			@Override
 			public void actionPerformed( final ActionEvent e )
@@ -366,9 +366,9 @@ public class Main
 					}
 				}
 			}
-		}, 2 );
+		};
 
-		final MenuItem deleteRecord = new MenuItem( new AbstractAction( "delete" )
+		final Action deleteRecord = new AbstractAction( "delete" )
 		{
 			@Override
 			public void actionPerformed( final ActionEvent e )
@@ -386,7 +386,7 @@ public class Main
 					viewModel.setRecord( parent );
 				}
 			}
-		}, 2 );
+		};
 
 		{
 			final List<MenuItem> items = new ArrayList<MenuItem>();
@@ -404,12 +404,12 @@ public class Main
 		{
 			final List<MenuItem> items = new ArrayList<MenuItem>();
 			items.add( navigateMenu );
-			items.add( newRecord );
-			items.add( setRecordStart );
-			items.add( setRecordEnd );
-			items.add( setRecordLength );
-			items.add( setRecordCount );
-			items.add( deleteRecord );
+			items.add( new MenuItem( newRecord, 2 ) );
+			items.add( new MenuItem( setRecordStart, 2 ) );
+			items.add( new MenuItem( setRecordEnd, 2 ) );
+			items.add( new MenuItem( setRecordLength, 2 ) );
+			items.add( new MenuItem( setRecordCount, 2 ) );
+			items.add( new MenuItem( deleteRecord, 2 ) );
 			items.add( new MenuItem( parentRecord, 2 ) );
 			items.add( analyzeMenu );
 			structureMenu.setItems( items );
