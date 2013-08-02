@@ -61,6 +61,7 @@ public class Main
 
 		final ViewModel viewModel = new ViewModel();
 		viewModel.setDataModel( dataModels.get( 0 ) );
+		viewModel.setRecord( new RootRecord( viewModel.getDataModel() ) );
 		if ( dataModels.size() > 1 )
 		{
 			viewModel.setHighlighter( new DifferenceHighlighter( dataModels ) );
@@ -173,6 +174,12 @@ public class Main
 			@Override
 			public void actionPerformed( final ActionEvent e )
 			{
+				final ViewModel viewModel = view.getViewModel();
+				final Record record = viewModel.getRecord();
+				if ( record != null )
+				{
+					viewModel.jumpTo( record.getStart() );
+				}
 			}
 		};
 
@@ -181,6 +188,23 @@ public class Main
 			@Override
 			public void actionPerformed( final ActionEvent e )
 			{
+				final ViewModel viewModel = view.getViewModel();
+				final long selectionLength = viewModel.getSelectionLength();
+				if ( selectionLength == 2L || selectionLength == 4L )
+				{
+					final DataModel dataModel = viewModel.getDataModel();
+					try
+					{
+						final Record record = viewModel.getRecord();
+						final long target = record.getStart() + dataModel.getLittleEndian( viewModel.getSelectionStart(), (int)selectionLength );
+						viewModel.jumpTo( target );
+						viewModel.select( target, target );
+					}
+					catch ( IOException e1 )
+					{
+						e1.printStackTrace(); // FIXME: Generated try-catch block.
+					}
+				}
 			}
 		};
 
@@ -189,6 +213,12 @@ public class Main
 			@Override
 			public void actionPerformed( final ActionEvent e )
 			{
+				final ViewModel viewModel = view.getViewModel();
+				final Record record = viewModel.getRecord();
+				if ( record != null )
+				{
+					viewModel.jumpTo( record.getEnd() );
+				}
 			}
 		};
 
@@ -197,8 +227,166 @@ public class Main
 			@Override
 			public void actionPerformed( final ActionEvent e )
 			{
+				final ViewModel viewModel = view.getViewModel();
+				final Record record = viewModel.getRecord();
+				if ( record != null )
+				{
+					final Record parent = record.getParent();
+					if ( parent != null )
+					{
+						viewModel.setRecord( parent );
+					}
+				}
 			}
 		};
+
+		final MenuItem newRecord = new MenuItem( new AbstractAction( "new" )
+		{
+			@Override
+			public void actionPerformed( final ActionEvent e )
+			{
+				final ViewModel viewModel = view.getViewModel();
+				if ( !viewModel.isSelectionEmpty() )
+				{
+					final ArrayRecord record = new ArrayRecord( viewModel.getSelectionStart(), viewModel.getSelectionLength(), 1L );
+					final Record parent = viewModel.getRecord();
+					record.setParent( parent );
+					parent.addDefinition( new RecordDefinition( "record", record ) );
+					viewModel.setRecord( record );
+					viewModel.clearSelection();
+				}
+			}
+		}, 2 );
+
+		final MenuItem setRecordStart = new MenuItem( new AbstractAction( "start" )
+		{
+			@Override
+			public void actionPerformed( final ActionEvent e )
+			{
+				final ViewModel viewModel = view.getViewModel();
+				if ( !viewModel.isSelectionEmpty() )
+				{
+					final Record record = viewModel.getRecord();
+					final Record parent = record.getParent();
+					if ( parent != null )
+					{
+						final long currentStart = record.getStart();
+						final long newStart = viewModel.getSelectionStart();
+
+						final Definition definition = parent.getDefinition( currentStart );
+						if ( record instanceof ArrayRecord )
+						{
+							parent.removeDefinition( definition );
+							final ArrayRecord arrayRecord = (ArrayRecord)record;
+							arrayRecord.setStart( newStart );
+							parent.addDefinition( definition );
+							view.repaint();
+						}
+					}
+				}
+			}
+		}, 2 );
+
+		final MenuItem setRecordEnd = new MenuItem( new AbstractAction( "end" )
+		{
+			@Override
+			public void actionPerformed( final ActionEvent e )
+			{
+				final ViewModel viewModel = view.getViewModel();
+				if ( !viewModel.isSelectionEmpty() )
+				{
+					final Record record = viewModel.getRecord();
+					if ( record instanceof ArrayRecord )
+					{
+						final ArrayRecord arrayRecord = (ArrayRecord)record;
+						arrayRecord.setEnd( viewModel.getSelectionEnd() );
+						view.repaint();
+					}
+				}
+			}
+		}, 2 );
+
+		final MenuItem setRecordLength = new MenuItem( new AbstractAction( "length" )
+		{
+			@Override
+			public void actionPerformed( final ActionEvent e )
+			{
+				final ViewModel viewModel = view.getViewModel();
+				final long selectionLength = viewModel.getSelectionLength();
+				if ( selectionLength >= 1L && selectionLength <= 8L )
+				{
+					final DataModel dataModel = viewModel.getDataModel();
+					final long length;
+					try
+					{
+						length = dataModel.getLittleEndian( viewModel.getSelectionStart(), (int)selectionLength );
+
+						final Record record = viewModel.getRecord();
+						if ( record instanceof ArrayRecord )
+						{
+							final ArrayRecord arrayRecord = (ArrayRecord)record;
+							arrayRecord.setLength( length );
+							view.repaint();
+						}
+					}
+					catch ( IOException e1 )
+					{
+						e1.printStackTrace(); // FIXME: Generated try-catch block.
+					}
+				}
+			}
+		}, 2 );
+
+		final MenuItem setRecordCount = new MenuItem( new AbstractAction( "count" )
+		{
+			@Override
+			public void actionPerformed( final ActionEvent e )
+			{
+				final ViewModel viewModel = view.getViewModel();
+				final long selectionLength = viewModel.getSelectionLength();
+				if ( selectionLength >= 1L && selectionLength <= 8L )
+				{
+					final DataModel dataModel = viewModel.getDataModel();
+					final long length;
+					try
+					{
+						length = dataModel.getLittleEndian( viewModel.getSelectionStart(), (int)selectionLength );
+
+						final Record record = viewModel.getRecord();
+						if ( record instanceof ArrayRecord )
+						{
+							final ArrayRecord arrayRecord = (ArrayRecord)record;
+							arrayRecord.setCount( length );
+							view.repaint();
+						}
+					}
+					catch ( IOException e1 )
+					{
+						e1.printStackTrace(); // FIXME: Generated try-catch block.
+					}
+				}
+			}
+		}, 2 );
+
+		final MenuItem deleteRecord = new MenuItem( new AbstractAction( "delete" )
+		{
+			@Override
+			public void actionPerformed( final ActionEvent e )
+			{
+				final ViewModel viewModel = view.getViewModel();
+				final Record record = viewModel.getRecord();
+				final Record parent = record.getParent();
+				if ( parent != null )
+				{
+					final Definition definition = parent.getDefinition( record.getStart() );
+					if ( definition != null )
+					{
+						parent.removeDefinition( definition );
+					}
+					viewModel.setRecord( parent );
+				}
+			}
+		}, 2 );
 
 		{
 			final List<MenuItem> items = new ArrayList<MenuItem>();
@@ -216,39 +404,13 @@ public class Main
 		{
 			final List<MenuItem> items = new ArrayList<MenuItem>();
 			items.add( navigateMenu );
-
-			items.add( new MenuItem( new AbstractAction( "start" )
-			{
-				@Override
-				public void actionPerformed( final ActionEvent e )
-				{
-				}
-			}, 2 ) );
-
-			items.add( new MenuItem( new AbstractAction( "end" )
-			{
-				@Override
-				public void actionPerformed( final ActionEvent e )
-				{
-				}
-			}, 2 ) );
-
-			items.add( new MenuItem( new AbstractAction( "length" )
-			{
-				@Override
-				public void actionPerformed( final ActionEvent e )
-				{
-				}
-			}, 2 ) );
-
-			items.add( new MenuItem( new AbstractAction( "delete" )
-			{
-				@Override
-				public void actionPerformed( final ActionEvent e )
-				{
-				}
-			}, 2 ) );
-
+			items.add( newRecord );
+			items.add( setRecordStart );
+			items.add( setRecordEnd );
+			items.add( setRecordLength );
+			items.add( setRecordCount );
+			items.add( deleteRecord );
+			items.add( new MenuItem( parentRecord, 2 ) );
 			items.add( analyzeMenu );
 			structureMenu.setItems( items );
 		}
@@ -258,6 +420,7 @@ public class Main
 			items.add( navigateMenu );
 			items.add( structureMenu );
 
+/*
 			items.add( new MenuItem( new AbstractAction( "little-endian" )
 			{
 				@Override
@@ -273,11 +436,12 @@ public class Main
 				{
 				}
 			}, 2 ) );
+*/
 
 			analyzeMenu.setItems( items );
 		}
 
-		return navigateMenu;
+		return structureMenu;
 	}
 
 	private static DataModel createDataModel( final String filename )

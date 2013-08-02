@@ -19,12 +19,14 @@ package hexedit;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
+import java.io.*;
 import java.util.*;
 import javax.swing.*;
 import javax.swing.Timer;
 
 /**
- * FIXME Need comment
+ * Displays the contents of a {@link DataModel} as a grid of {@link Tile}s,
+ * each of which shows the value of a single byte.
  *
  * @author Gerrit Meinders
  */
@@ -36,6 +38,9 @@ extends JPanel
 	 */
 	private ViewModel _viewModel;
 
+	/**
+	 * Currently active menu.
+	 */
 	private Menu _menu;
 
 	/**
@@ -128,6 +133,7 @@ extends JPanel
 		final Color charForeground = new Color( 0x000000 );
 		final Color addressForeground = new Color( 0x444444 );
 		final Color charBackground = new Color( 0xffffff );
+		final Color otherRecordBackground = new Color( 0xf8f8f8 );
 		final Color valueForeground = new Color( 0x008080 );
 		final Color nullValueForeground = new Color( 0xaaaaaa );
 		final Color selectionBackground = new Color( 0xbbdddd );
@@ -145,6 +151,7 @@ extends JPanel
 
 		final Rectangle2D.Float viewBounds = Tools.inverseTransform( transform, new Rectangle2D.Float( 0.0f, 0.0f, (float)getWidth(), (float)getHeight() ) );
 
+		final Record record = viewModel.getRecord();
 		final Highlighter highlighter = viewModel.getHighlighter();
 
 		for ( final Tile tile : viewModel.getTiles() )
@@ -157,24 +164,59 @@ extends JPanel
 
 			final long address = tile.getAddress();
 
+			final Definition definition = record.getDefinition( address );
+
 			if ( tile.isSelected() )
 			{
 				g2.setColor( selectionBackground );
 			}
-			else
+			else if ( address >= record.getStart() && address <= record.getEnd() )
 			{
-				final Color color = highlighter.getColor( tile.getAddress() );
-				if ( color == null )
+				if ( definition != null && definition.isLink() )
 				{
-					g2.setColor( charBackground );
+					g2.setColor( tipBackground );
 				}
 				else
 				{
-					g2.setColor( color );
+					final Color color = highlighter.getColor( tile.getAddress() );
+					if ( color == null )
+					{
+						g2.setColor( charBackground );
+					}
+					else
+					{
+						g2.setColor( color );
+					}
 				}
+			}
+			else
+			{
+				g2.setColor( otherRecordBackground );
 			}
 
 			g2.fill( bounds );
+
+			if ( address == record.getStart() )
+			{
+				g2.setColor( new Color( 0xbbdddd ) );
+				g2.fill( createStartBracket( bounds ) );
+			}
+			else if ( definition != null && ( address == record.getStart() + definition.getAddress() ) )
+			{
+				g2.setColor( new Color( 0xcccccc ) );
+				g2.fill( createStartBracket( bounds ) );
+			}
+
+			if ( address == record.getEnd() )
+			{
+				g2.setColor( new Color( 0xbbdddd ) );
+				g2.fill( createEndBracket( bounds ) );
+			}
+			else if ( definition != null && ( address == record.getStart() + definition.getAddress() + (long)definition.getLength() - 1L ) )
+			{
+				g2.setColor( new Color( 0xcccccc ) );
+				g2.fill( createEndBracket( bounds ) );
+			}
 
 			if ( tile.isPrintable() )
 			{
@@ -199,6 +241,42 @@ extends JPanel
 				g2.setFont( addressFont );
 				g2.drawString( addressLabel, -addressMargin -(float)stringBounds.getMaxX(), (float)bounds.getCenterY() - (float)stringBounds.getY() - (float)stringBounds.getHeight() / 2.0f );
 			}
+		}
+
+		final long selectionEnd = viewModel.getSelectionEnd();
+		if ( false && viewModel.getSelectionLength() > 0L )
+		{
+			final Tile startTile = viewModel.getTile( viewModel.getSelectionStart() );
+			final Tile endTile = viewModel.getTile( selectionEnd );
+			final Rectangle2D.Float startBounds = startTile.getBounds();
+			final Rectangle2D.Float endBounds = endTile.getBounds();
+
+			int column;
+			float y = endBounds.y + endBounds.height;
+			if ( startBounds.y == endBounds.y )
+			{
+				column = startTile.getColumn();
+			}
+			else
+			{
+				column = endTile.getColumn() - 7;
+			}
+			column = Math.max( 0, Math.min( viewModel.getColumns() - 8, column ) );
+			float x = column * ( viewModel.getTileSize() + viewModel.getTilePadding() );
+
+			g2.setColor( new Color( 0xcccccc ) );
+			g2.fill( new Rectangle2D.Float( x, y, viewModel.getTileSize() * 8.0f + viewModel.getTilePadding() * 7.0f, viewModel.getTileSize() + viewModel.getTilePadding() ) );
+			g2.setColor( new Color( 0x444444 ) );
+			g2.setFont( sourceDetailsFont );
+			drawString( g2, new Rectangle2D.Float( x, y + viewModel.getTilePadding(), viewModel.getTileSize() * 2.0f + viewModel.getTilePadding() * 1.0f, viewModel.getTileSize() ), 0.5f, 0.5f, "Integer" );
+			drawString( g2, new Rectangle2D.Float( x + viewModel.getTileSize() * 2.0f + viewModel.getTilePadding() * 2.0f, y + viewModel.getTilePadding(), viewModel.getTileSize() * 2.0f + viewModel.getTilePadding() * 1.0f, viewModel.getTileSize() ), 0.5f, 0.5f, "Float" );
+
+			g2.setColor( new Color( 0xaaaaaa ) );
+			g2.fill( new Rectangle2D.Float( x, y + viewModel.getTileSize() + viewModel.getTilePadding(), viewModel.getTileSize() * 8.0f + viewModel.getTilePadding() * 7.0f, viewModel.getTileSize() + viewModel.getTilePadding() ) );
+			g2.setColor( new Color( 0x444444 ) );
+			g2.setFont( sourceDetailsFont );
+			drawString( g2, new Rectangle2D.Float( x, y + viewModel.getTileSize() + 2.0f * viewModel.getTilePadding(), viewModel.getTileSize() * 2.0f + viewModel.getTilePadding() * 1.0f, viewModel.getTileSize() ), 0.5f, 0.5f, "Little-endian" );
+			drawString( g2, new Rectangle2D.Float( x + viewModel.getTileSize() * 2.0f + viewModel.getTilePadding() * 2.0f, y + viewModel.getTileSize() + 2.0f * viewModel.getTilePadding(), viewModel.getTileSize() * 2.0f + viewModel.getTilePadding() * 1.0f, viewModel.getTileSize() ), 0.5f, 0.5f, "Big-endian" );
 		}
 
 		if ( viewBounds.getY() < 0.0 )
@@ -277,6 +355,36 @@ extends JPanel
 		final float x = bounds.x + horizontalAlignment * ( bounds.width - fontMetrics.stringWidth( string ) );
 		final float y = bounds.y + fontMetrics.getAscent() + verticalAlignment * ( bounds.height - fontMetrics.getHeight() );
 		g2.drawString( string, x, y );
+	}
+
+	private Path2D.Float createStartBracket( final Rectangle2D.Float bounds )
+	{
+		final Path2D.Float startBracket = new Path2D.Float();
+		startBracket.moveTo( bounds.x, bounds.y );
+		startBracket.lineTo( bounds.x + _viewModel.getTilePadding(), bounds.y );
+		startBracket.lineTo( bounds.x + _viewModel.getTilePadding(), bounds.y - _viewModel.getTilePadding() );
+		startBracket.lineTo( bounds.x - _viewModel.getTilePadding(), bounds.y - _viewModel.getTilePadding() );
+		startBracket.lineTo( bounds.x - _viewModel.getTilePadding(), bounds.y + bounds.height + _viewModel.getTilePadding() );
+		startBracket.lineTo( bounds.x + _viewModel.getTilePadding(), bounds.y + bounds.height + _viewModel.getTilePadding() );
+		startBracket.lineTo( bounds.x + _viewModel.getTilePadding(), bounds.y + bounds.height );
+		startBracket.lineTo( bounds.x, bounds.y + bounds.height );
+		startBracket.closePath();
+		return startBracket;
+	}
+
+	private Path2D.Float createEndBracket( final Rectangle2D.Float bounds )
+	{
+		final Path2D.Float endBracket = new Path2D.Float();
+		endBracket.moveTo( bounds.x + bounds.width, bounds.y );
+		endBracket.lineTo( bounds.x + bounds.width - _viewModel.getTilePadding(), bounds.y );
+		endBracket.lineTo( bounds.x + bounds.width - _viewModel.getTilePadding(), bounds.y - _viewModel.getTilePadding() );
+		endBracket.lineTo( bounds.x + bounds.width + _viewModel.getTilePadding(), bounds.y - _viewModel.getTilePadding() );
+		endBracket.lineTo( bounds.x + bounds.width + _viewModel.getTilePadding(), bounds.y + bounds.height + _viewModel.getTilePadding() );
+		endBracket.lineTo( bounds.x + bounds.width - _viewModel.getTilePadding(), bounds.y + bounds.height + _viewModel.getTilePadding() );
+		endBracket.lineTo( bounds.x + bounds.width - _viewModel.getTilePadding(), bounds.y + bounds.height );
+		endBracket.lineTo( bounds.x + bounds.width, bounds.y + bounds.height );
+		endBracket.closePath();
+		return endBracket;
 	}
 
 	private class MouseListenerImpl
@@ -384,6 +492,26 @@ extends JPanel
 					if ( action != null )
 					{
 						action.actionPerformed( null );
+					}
+				}
+			}
+			else
+			{
+				final Tile tile = _viewModel.getTile( e.getPoint() );
+				if ( tile != null )
+				{
+					final Record record = _viewModel.getRecord();
+					final Definition definition = record == null ? null : record.getDefinition( tile.getAddress() );
+					if ( definition != null )
+					{
+						try
+						{
+							definition.use( View.this );
+						}
+						catch ( IOException e1 )
+						{
+							e1.printStackTrace(); // FIXME: Generated try-catch block.
+						}
 					}
 				}
 			}

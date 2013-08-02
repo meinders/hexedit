@@ -23,7 +23,8 @@ import java.net.*;
 import java.util.*;
 
 /**
- * FIXME Need comment
+ * Model for {@link View} which keeps track of view layout, transformation,
+ * selection, highlighting and so on.
  *
  * @author Gerrit Meinders
  */
@@ -53,6 +54,8 @@ extends Observable
 	private long _selectionEnd = -1L;
 
 	private float _headerHeight = 150.0f;
+
+	private Record _record;
 
 	private Highlighter _highlighter = new Highlighter()
 	{
@@ -267,6 +270,11 @@ extends Observable
 		return _selectionEnd - _selectionStart + 1L;
 	}
 
+	public boolean isSelectionEmpty()
+	{
+		return getSelectionLength() == 0L;
+	}
+
 	public void select( final long start, final long end )
 	{
 		final long newStart = Math.min( start, end );
@@ -307,10 +315,13 @@ extends Observable
 		final long selectionLength = getSelectionLength();
 		final long start = getSelectionStart();
 
+		final Record record = getRecord();
+		final long recordStart = record.getStart();
+
 		if ( selectionLength == 1L )
 		{
 			final Tile tile = getTile( start );
-			return "[" + start + "] " + tile.getUnsignedDecimal();
+			return "[" + recordStart + "+" + ( start - recordStart ) + "] " + tile.getUnsignedDecimal();
 		}
 		else
 		{
@@ -323,7 +334,9 @@ extends Observable
 
 					final StringBuilder builder = new StringBuilder();
 					builder.append( "[" );
-					builder.append( start );
+					builder.append( recordStart );
+					builder.append( "+" );
+					builder.append( start - recordStart );
 					builder.append( "] " );
 					builder.append( "int: LE " );
 					builder.append( littleEndian );
@@ -460,5 +473,20 @@ extends Observable
 		{
 			throw new UnsupportedOperationException();
 		}
+	}
+
+	public void setRecord( final Record record )
+	{
+		if ( _record != record )
+		{
+			_record = record;
+			setChanged();
+			notifyObservers();
+		}
+	}
+
+	public Record getRecord()
+	{
+		return _record;
 	}
 }
