@@ -64,6 +64,11 @@ public class DataModel
 	{
 		if ( _offset != offset )
 		{
+			if ( offset < 0L )
+			{
+				throw new IllegalArgumentException( "Offset must not be negative: " + offset );
+			}
+
 			_offset = offset;
 			_bytes = null;
 		}
@@ -78,6 +83,11 @@ public class DataModel
 	{
 		if ( _windowSize != windowSize )
 		{
+			if ( windowSize <= 0 )
+			{
+				throw new IllegalArgumentException( "Window size must be positive: " + windowSize );
+			}
+
 			_windowSize = windowSize;
 			_bytes = null;
 			_buffer = null;
@@ -96,6 +106,11 @@ public class DataModel
 	public byte getByte( final long address )
 	throws IOException
 	{
+		if ( address < 0L )
+		{
+			throw new IllegalArgumentException( "Address must not be negative: " + address );
+		}
+
 		final long relativeAddress = address - _offset;
 		if ( relativeAddress < 0L || relativeAddress >= (long)_windowSize )
 		{
@@ -141,6 +156,16 @@ public class DataModel
 	public long getBigEndian( final long start, final int length )
 	throws IOException
 	{
+		if ( start < 0L )
+		{
+			throw new IllegalArgumentException( "Start offset must not be negative: " + start );
+		}
+
+		if ( length < 1 || length > 8 )
+		{
+			throw new IllegalArgumentException( "Length must be between 1 and 8: " + length );
+		}
+
 		long result = 0L;
 		for ( long offset = start, end = start + (long)length; offset < end; offset++ )
 		{
@@ -152,6 +177,16 @@ public class DataModel
 	public long getLittleEndian( final long start, final int length )
 	throws IOException
 	{
+		if ( start < 0L )
+		{
+			throw new IllegalArgumentException( "Start offset must not be negative: " + start );
+		}
+
+		if ( length < 1 || length > 8 )
+		{
+			throw new IllegalArgumentException( "Length must be between 1 and 8." );
+		}
+
 		long result = 0L;
 		for ( long offset = start + (long)length - 1L; offset >= start; offset-- )
 		{
