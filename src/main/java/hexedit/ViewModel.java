@@ -49,9 +49,9 @@ extends Observable
 
 	private AffineTransform _affineTransform;
 
-	private long _selectionStart = 0L;
+	private long _selectionStart = -1L;
 
-	private long _selectionEnd = -1L;
+	private long _selectionEnd = -2L;
 
 	private float _headerHeight = 150.0f;
 
@@ -242,6 +242,11 @@ extends Observable
 
 	public void setSelectionStart( final long selectionStart )
 	{
+		if ( isSelectionEmpty() )
+		{
+			throw new IllegalStateException( "Can't adjust selection end when selection is empty." );
+		}
+
 		if ( _selectionStart != selectionStart )
 		{
 			_selectionStart = selectionStart;
@@ -257,6 +262,11 @@ extends Observable
 
 	public void setSelectionEnd( final long selectionEnd )
 	{
+		if ( isSelectionEmpty() )
+		{
+			throw new IllegalStateException( "Can't adjust selection end when selection is empty." );
+		}
+
 		if ( _selectionEnd != selectionEnd )
 		{
 			_selectionEnd = selectionEnd;
