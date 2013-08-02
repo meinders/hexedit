@@ -308,8 +308,8 @@ extends Observable
 	{
 		if ( getSelectionLength() > 0L )
 		{
-			_selectionStart = 0L;
-			_selectionEnd = -1L;
+			_selectionStart = -1L;
+			_selectionEnd = -2L;
 			setChanged();
 			notifyObservers();
 		}
