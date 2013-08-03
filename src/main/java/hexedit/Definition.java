@@ -25,14 +25,43 @@ import java.io.*;
  */
 public interface Definition
 {
+	/**
+	 * Returns the label.
+	 *
+	 * @return Label.
+	 */
 	String getLabel();
 
+	/**
+	 * Returns the address where the definition starts, relative to the
+	 * containing record.
+	 *
+	 * @return Address relative to the containing record.
+	 */
 	long getAddress();
 
+	/**
+	 * Returns the length of this definition.
+	 *
+	 * @return Length of the definition.
+	 */
 	int getLength();
 
+	/**
+	 * Returns whether this definition provides an implementation-specific
+	 * action, i.e. whether the {@link #use} method does something.
+	 *
+	 * @return {@code true} if {@link #use} does something.
+	 */
+	boolean isLink();
+
+	/**
+	 * Performs an implementation-specific action.
+	 *
+	 * @param view View from which the action was triggered.
+	 *
+	 * @throws IOException if an I/O error occurs.
+	 */
 	void use( View view )
 	throws IOException;
-
-	boolean isLink();
 }
