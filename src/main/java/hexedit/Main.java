@@ -134,7 +134,7 @@ public class Main
 			{
 				final ViewModel viewModel = view.getViewModel();
 				final long selectionLength = viewModel.getSelectionLength();
-				if ( selectionLength == 2L || selectionLength == 4L )
+				if ( selectionLength >= 1L || selectionLength <= 8L )
 				{
 					final DataModel dataModel = viewModel.getDataModel();
 					try
@@ -234,6 +234,11 @@ public class Main
 					final Record parent = record.getParent();
 					if ( parent != null )
 					{
+						final Definition recordDefinition = record.getRecordDefinition();
+						if ( recordDefinition != null )
+						{
+							viewModel.jumpTo( recordDefinition.getAddress() );
+						}
 						viewModel.setRecord( parent );
 					}
 				}
@@ -251,9 +256,43 @@ public class Main
 					final ArrayRecord record = new ArrayRecord( viewModel.getSelectionStart(), viewModel.getSelectionLength(), 1L );
 					final Record parent = viewModel.getRecord();
 					record.setParent( parent );
-					parent.addDefinition( new RecordDefinition( "record", record ) );
+					final RecordDefinition definition = new RecordDefinition( "record", record );
+					record.setRecordDefinition( definition );
+					parent.addDefinition( definition );
 					viewModel.setRecord( record );
 					viewModel.clearSelection();
+				}
+			}
+		};
+
+		final Action newRecordFromPointer = new AbstractAction( "pointer" )
+		{
+			@Override
+			public void actionPerformed( final ActionEvent e )
+			{
+				final ViewModel viewModel = view.getViewModel();
+				final long selectionLength = viewModel.getSelectionLength();
+				if ( selectionLength >= 1L && selectionLength <= 8L )
+				{
+					final DataModel dataModel = viewModel.getDataModel();
+					try
+					{
+						final long pointer = dataModel.getLittleEndian( viewModel.getSelectionStart(), (int)selectionLength );
+						final ArrayRecord record = new ArrayRecord( pointer, 1L, 1L );
+						final Record parent = viewModel.getRecord();
+						record.setParent( parent );
+						final long pointerAddress = viewModel.getSelectionStart() - parent.getStart();
+						final PointerDefinition definition = new PointerDefinition( "pointer", pointerAddress, (int)selectionLength, record );
+						record.setRecordDefinition( definition );
+						parent.addDefinition( definition );
+						viewModel.setRecord( record );
+						viewModel.jumpTo( record.getStart() );
+						viewModel.clearSelection();
+					}
+					catch ( IOException e1 )
+					{
+						e1.printStackTrace(); // FIXME: Generated try-catch block.
+					}
 				}
 			}
 		};
@@ -267,21 +306,11 @@ public class Main
 				if ( !viewModel.isSelectionEmpty() )
 				{
 					final Record record = viewModel.getRecord();
-					final Record parent = record.getParent();
-					if ( parent != null )
+					if ( record instanceof ArrayRecord )
 					{
-						final long currentStart = record.getStart();
-						final long newStart = viewModel.getSelectionStart();
-
-						final Definition definition = parent.getDefinition( currentStart );
-						if ( record instanceof ArrayRecord )
-						{
-							parent.removeDefinition( definition );
-							final ArrayRecord arrayRecord = (ArrayRecord)record;
-							arrayRecord.setStart( newStart );
-							parent.addDefinition( definition );
-							view.repaint();
-						}
+						final ArrayRecord arrayRecord = (ArrayRecord)record;
+						arrayRecord.setStart( viewModel.getSelectionStart() );
+						view.repaint();
 					}
 				}
 			}
@@ -378,10 +407,11 @@ public class Main
 				final Record parent = record.getParent();
 				if ( parent != null )
 				{
-					final Definition definition = parent.getDefinition( record.getStart() );
+					final Definition definition = record.getRecordDefinition();
 					if ( definition != null )
 					{
 						parent.removeDefinition( definition );
+						viewModel.jumpTo( definition.getAddress() );
 					}
 					viewModel.setRecord( parent );
 				}
@@ -405,6 +435,7 @@ public class Main
 			final List<MenuItem> items = new ArrayList<MenuItem>();
 			items.add( navigateMenu );
 			items.add( new MenuItem( newRecord, 2 ) );
+			items.add( new MenuItem( newRecordFromPointer, 2 ) );
 			items.add( new MenuItem( setRecordStart, 2 ) );
 			items.add( new MenuItem( setRecordEnd, 2 ) );
 			items.add( new MenuItem( setRecordLength, 2 ) );
@@ -440,6 +471,35 @@ public class Main
 
 			analyzeMenu.setItems( items );
 		}
+
+		final ViewModel viewModel = view.getViewModel();
+		final Observer actionStateUpdater = new Observer()
+		{
+			@Override
+			public void update( final Observable o, final Object arg )
+			{
+				final ViewModel viewModel = (ViewModel)o;
+				final long selectionLength = viewModel.getSelectionLength();
+
+				// If it *could* be a number of up to 64 bits.
+				final boolean numberSelected = selectionLength >= 1L && selectionLength <= 8L;
+
+				final Record record = viewModel.getRecord();
+				final boolean rootRecord = record.getParent() == null;
+
+				jumpAbsolute.setEnabled( numberSelected );
+				jumpRelative.setEnabled( numberSelected );
+				parentRecord.setEnabled( !rootRecord );
+
+				setRecordStart.setEnabled( !rootRecord && numberSelected );
+				setRecordEnd.setEnabled( !rootRecord && numberSelected );
+				setRecordLength.setEnabled( !rootRecord && numberSelected );
+				setRecordCount.setEnabled( !rootRecord && numberSelected );
+				deleteRecord.setEnabled( !rootRecord );
+			}
+		};
+		viewModel.addObserver( actionStateUpdater );
+		actionStateUpdater.update( viewModel, null );
 
 		return structureMenu;
 	}

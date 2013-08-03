@@ -32,6 +32,8 @@ public abstract class Record
 {
 	private Record _parent;
 
+	private Definition _recordDefinition;
+
 	private List<Definition> _definitions;
 
 	protected Record()
@@ -47,6 +49,16 @@ public abstract class Record
 	public void setParent( final Record parent )
 	{
 		_parent = parent;
+	}
+
+	public Definition getRecordDefinition()
+	{
+		return _recordDefinition;
+	}
+
+	public void setRecordDefinition( final Definition recordDefinition )
+	{
+		_recordDefinition = recordDefinition;
 	}
 
 	public DefinitionMap getDefinitions()
