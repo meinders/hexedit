@@ -154,6 +154,8 @@ extends JPanel
 		final Record record = viewModel.getRecord();
 		final Highlighter highlighter = viewModel.getHighlighter();
 
+		final DefinitionMap definitions = record.getDefinitions();
+
 		for ( final Tile tile : viewModel.getTiles() )
 		{
 			final Rectangle2D.Float bounds = tile.getBounds();
@@ -164,7 +166,7 @@ extends JPanel
 
 			final long address = tile.getAddress();
 
-			final Definition definition = record.getDefinition( address );
+			final Definition definition = definitions.get( address - record.getStart() );
 
 			if ( tile.isSelected() )
 			{
@@ -341,7 +343,8 @@ extends JPanel
 				g.fill( bounds );
 			}
 
-			g.setColor( new Color( 0xffffff ) );
+			final Action action = menuItem.getAction();
+			g.setColor( action != null && action.isEnabled() ? new Color( 0xffffff ) : new Color( 0x80ffffff, true ) );
 			g.setFont( new Font( Font.SANS_SERIF, Font.BOLD, 15 ) );
 			drawString( g, bounds, 0.5f, 0.5f, menuItem.getText() );
 
@@ -501,16 +504,20 @@ extends JPanel
 				if ( tile != null )
 				{
 					final Record record = _viewModel.getRecord();
-					final Definition definition = record == null ? null : record.getDefinition( tile.getAddress() );
-					if ( definition != null )
+					if ( record != null )
 					{
-						try
+						final DefinitionMap definitions = record.getDefinitions();
+						final Definition definition = definitions.get( tile.getAddress() );
+						if ( definition != null )
 						{
-							definition.use( View.this );
-						}
-						catch ( IOException e1 )
-						{
-							e1.printStackTrace(); // FIXME: Generated try-catch block.
+							try
+							{
+								definition.use( View.this );
+							}
+							catch ( IOException e1 )
+							{
+								e1.printStackTrace(); // FIXME: Generated try-catch block.
+							}
 						}
 					}
 				}

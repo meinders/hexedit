@@ -32,11 +32,11 @@ public abstract class Record
 {
 	private Record _parent;
 
-	private SortedMap<Long, Definition> _definitions;
+	private List<Definition> _definitions;
 
 	protected Record()
 	{
-		_definitions = new TreeMap<Long, Definition>();
+		_definitions = new ArrayList<Definition>();
 	}
 
 	public Record getParent()
@@ -49,39 +49,59 @@ public abstract class Record
 		_parent = parent;
 	}
 
-	public Definition getDefinition( final long address )
+	public DefinitionMap getDefinitions()
 	{
-		Definition result = _definitions.get( address );
-		if ( result == null )
-		{
-			final SortedMap<Long, Definition> headMap = _definitions.headMap( address );
-			if ( !headMap.isEmpty() )
-			{
-				final Long previousAddress = headMap.lastKey();
-				final Definition previous = headMap.get( previousAddress );
-				if ( address - previousAddress < (long)previous.getLength() )
-				{
-					result = previous;
-				}
-			}
-		}
-		return result;
+		return new DefinitionMap( _definitions );
 	}
 
 	public void addDefinition( final Definition definition )
 	{
-		_definitions.put( definition.getAddress(), definition );
+		final List<Definition> definitions = _definitions;
+		for ( int i = 0; i < definitions.size(); i++ )
+		{
+			final Definition existing = definitions.get( i );
+			if ( existing.getAddress() == definition.getAddress() )
+			{
+				definitions.set( i, definition );
+				return;
+			}
+		}
+		definitions.add( definition );
 	}
 
 	public void removeDefinition( final Definition definition )
 	{
-		_definitions.remove( definition.getAddress() );
+		final List<Definition> definitions = _definitions;
+		for ( int i = 0; i < definitions.size(); i++ )
+		{
+			final Definition existing = definitions.get( i );
+			if ( existing.getAddress() == definition.getAddress() )
+			{
+				definitions.remove( i );
+				break;
+			}
+		}
 	}
 
+	/**
+	 * Returns the address of the first byte in the record.
+	 *
+	 * @return Start address.
+	 */
 	public abstract long getStart();
 
+	/**
+	 * Returns the address of the last byte in the record.
+	 *
+	 * @return End address.
+	 */
 	public abstract long getEnd();
 
+	/**
+	 * Returns the length of the record.
+	 *
+	 * @return Length of the record.
+	 */
 	public long getLength()
 	{
 		return getEnd() - getStart() + 1L;

@@ -19,57 +19,64 @@ package hexedit;
 import java.io.*;
 
 /**
- * Shows the presence of a {@link Record} and provides access to it.
- *
- * @author Gerrit Meinders
- */
-public class RecordDefinition
+* Trivial implementation of {@link Definition} interface used for testing.
+*
+* @author Gerrit Meinders
+*/
+class DefinitionImpl
 implements Definition
 {
 	private String _label;
 
-	private Record _record;
+	private long _address;
 
-	/**
-	 * Constructs a new instance.
-	 */
-	public RecordDefinition( final String label, final Record record )
+	private int _length;
+
+	public DefinitionImpl( final long address, final int length )
 	{
-		_label = label;
-		_record = record;
+		_address = address;
+		_length = length;
 	}
 
-	@Override
 	public String getLabel()
 	{
 		return _label;
 	}
 
-	@Override
-	public long getAddress()
+	public void setLabel( final String label )
 	{
-		final long start = _record.getStart();
-		final Record parent = _record.getParent();
-		return start - parent.getStart();
+		_label = label;
 	}
 
-	@Override
+	public long getAddress()
+	{
+		return _address;
+	}
+
+	public void setAddress( final long address )
+	{
+		_address = address;
+	}
+
 	public int getLength()
 	{
-		return (int)Math.min( (long)Integer.MAX_VALUE, _record.getLength() );
+		return _length;
+	}
+
+	public void setLength( final int length )
+	{
+		_length = length;
 	}
 
 	@Override
 	public void use( final View view )
 	throws IOException
 	{
-		final ViewModel viewModel = view.getViewModel();
-		viewModel.setRecord( _record );
 	}
 
 	@Override
 	public boolean isLink()
 	{
-		return true;
+		return false;
 	}
 }
