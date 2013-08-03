@@ -89,9 +89,10 @@ public class ArrayRecord
 	public void setStart( final long start )
 	{
 		final long end = getEnd();
+		final long newEnd = start < end ? end : start + getLength() - 1L;
 		_start = start;
 		update( 0L );
-		setEnd( end );
+		setEnd( newEnd );
 	}
 
 	@Override
