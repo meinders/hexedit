@@ -237,7 +237,7 @@ public class Main
 						final Definition recordDefinition = record.getRecordDefinition();
 						if ( recordDefinition != null )
 						{
-							viewModel.jumpTo( recordDefinition.getAddress() );
+							viewModel.jumpTo( parent.getStart() + recordDefinition.getAddress() );
 						}
 						viewModel.setRecord( parent );
 					}
